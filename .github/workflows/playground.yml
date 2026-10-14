@@ -1,7 +1,8 @@
 name: Playground
 
-# Installs the published @tickdeck/* packages in the playground apps, checks
-# every way of adopting them and publishes the playground site to GitHub Pages.
+# Installs the published @tickdeck/* packages in the playground apps and
+# Storybook, checks every way of adopting them, runs every story as a test and
+# publishes the playground site (with Storybook) to GitHub Pages.
 on:
   workflow_dispatch:
     inputs:
@@ -52,12 +53,14 @@ jobs:
             sed -n '/^| Date/,/^|---/p' RESULTS.md
             tail -n 1 RESULTS.md
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload the browser test report
+      - name: Upload the test reports
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playground-e2e-report
-          path: playground/e2e-report
+          name: playground-test-reports
+          path: |
+            playground/e2e-report
+            playground/storybook/**/__screenshots__
           retention-days: 14
       - run: npm run site
       - uses: actions/upload-pages-artifact@v5
