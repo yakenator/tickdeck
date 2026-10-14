@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import type { TdkAccountPanelElement, TdkOrderTicketElement } from '@tickdeck/elements';
 import { html } from 'lit';
 import { expect, userEvent, waitFor } from 'storybook/test';
-import { loadScenario, round2, type Scenario } from '../src/scenario';
+import { fixedClock, loadScenario, round2, type Scenario } from '../src/scenario';
 import { findPart, part, parts, retype, text, whenReady, widget } from '../src/testing';
 
 interface ScreenArgs {
@@ -44,8 +44,8 @@ const meta = {
         <tdk-trade-buttons .session=${session} .feed=${feed} instrument="MOCK:ACME" quantity="10" theme=${theme}></tdk-trade-buttons>
         <tdk-order-ticket .session=${session} .feed=${feed} instrument="MOCK:ACME" kind=${args.kind} quantity="10" theme=${theme}></tdk-order-ticket>
       </div>
-      <tdk-account-panel .session=${session} .feed=${feed} theme=${theme} @tdk-amend=${amend}></tdk-account-panel>
-      <tdk-notifications .session=${session} .feed=${feed} placement="bottom-end" theme=${theme}></tdk-notifications>
+      <tdk-account-panel .session=${session} .feed=${feed} .scheduler=${fixedClock} time-zone="UTC" theme=${theme} @tdk-amend=${amend}></tdk-account-panel>
+      <tdk-notifications .session=${session} .feed=${feed} .scheduler=${fixedClock} time-zone="UTC" placement="bottom-end" theme=${theme}></tdk-notifications>
     </div>`;
   },
 } satisfies Meta<ScreenArgs>;

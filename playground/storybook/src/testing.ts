@@ -51,13 +51,28 @@ export function whenReady(host: Element & { activeController?: { state: { value:
   );
 }
 
+/**
+ * A canvas for reading pixels. The chart's canvases are copied into it, so
+ * they are never read back themselves (Chrome warns about repeated readbacks
+ * of a canvas without `willReadFrequently`).
+ */
+const scratch = document.createElement('canvas');
+const reader = scratch.getContext('2d', { willReadFrequently: true })!;
+
+function pixelsOf(source: HTMLCanvasElement): Uint8ClampedArray {
+  scratch.width = source.width;
+  scratch.height = source.height;
+  reader.clearRect(0, 0, scratch.width, scratch.height);
+  reader.drawImage(source, 0, 0);
+  return reader.getImageData(0, 0, scratch.width, scratch.height).data;
+}
+
 /** Every pixel of the canvases in `pane` that passes `test`, with the canvas row from the top in CSS pixels. */
 function countPixels(pane: Element, test: (r: number, g: number, b: number, a: number, y: number, height: number) => boolean): number {
   let count = 0;
   for (const canvas of pane.querySelectorAll('canvas')) {
-    const context = canvas.getContext('2d');
-    if (!context || canvas.width === 0 || canvas.height === 0) continue;
-    const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+    if (canvas.width === 0 || canvas.height === 0) continue;
+    const data = pixelsOf(canvas);
     const height = canvas.getBoundingClientRect().height || canvas.height;
     const scale = canvas.height / height;
     for (let index = 0; index < data.length; index += 4) {
@@ -84,12 +99,11 @@ export function volumeBarPixels(pane: Element, colors: readonly string[]): numbe
 
 /** The RGB a CSS color resolves to. */
 export function rgbOf(color: string): [number, number, number] {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 1;
-  const context = canvas.getContext('2d')!;
-  context.fillStyle = color;
-  context.fillRect(0, 0, 1, 1);
-  const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+  scratch.width = scratch.height = 1;
+  reader.clearRect(0, 0, 1, 1);
+  reader.fillStyle = color;
+  reader.fillRect(0, 0, 1, 1);
+  const [r, g, b] = reader.getImageData(0, 0, 1, 1).data;
   return [r!, g!, b!];
 }
 
