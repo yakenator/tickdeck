@@ -106,6 +106,7 @@ The chart is focusable in document order and exposed as an image named after wha
 | `timeframe` | | `1m`, `5m`, `1h`, `1D`, ... (see `parseTimeframe` in `@tickdeck/datafeed`) |
 | `style` | `'candles'` | `'candles' \| 'bars' \| 'line' \| 'area'` |
 | `priceScaleMode` | `'normal'` | `'normal' \| 'log' \| 'percent' \| 'indexed'` |
+| `volume` | `'pane'` | `'pane' \| 'overlay' \| 'none'`: volume in its own pane below the prices, at the bottom of the price pane, or not at all (see [Volume](#volume)) |
 | `theme` | `'light'` | `'light' \| 'dark'` |
 | `colors` | | `Partial<ChartColors>` applied over the theme and the container's tokens |
 | `pageSize` | `500` | Bars asked for per history page |
@@ -117,16 +118,31 @@ The chart is focusable in document order and exposed as an image named after wha
 | Member | |
 |---|---|
 | `instrument`, `instrumentInfo` | Observable id (the requested one while it resolves, the previous one again if that fails) and resolved `Instrument` |
-| `timeframe`, `chartStyle`, `priceScaleMode`, `theme`, `colors` | Observable settings |
+| `timeframe`, `chartStyle`, `priceScaleMode`, `volume`, `theme`, `colors` | Observable settings |
 | `loading` | Observable: the instrument or a history page is loading |
 | `crosshair` | Observable `{ time, price, bar }` under the pointer (price rounded to the tick), or `undefined` |
 | `bars`, `endOfHistory`, `getState()` | Loaded bars (oldest first) and a `ChartState` snapshot |
 | `on('bars' \| 'error', listener)` | Bar changes (`reset`, `older`, `update`, `append`) and failed feed requests |
 | `setInstrument(id)` | Resolves when the instrument metadata arrived; rejects (and emits `error`) on failure |
-| `setTimeframe`, `setChartStyle`, `setPriceScaleMode`, `setTheme(theme, colors?)` | Change what is shown |
+| `setTimeframe`, `setChartStyle`, `setPriceScaleMode`, `setVolume(mode)`, `setTheme(theme, colors?)` | Change what is shown |
 | `formatPrice(price)`, `snapPrice(price)` | Format with the instrument's `pricePrecision`, round to its `tickSize` |
 | `toPixel({ time, price })`, `fromPixel({ x, y })` | Convert between chart values and pixels relative to the container |
 | `reload()`, `resize()`, `scrollToRealtime()`, `dispose()` | |
+
+### Volume
+
+The bars' `volume` is drawn as a histogram, rising bars in the up color and falling bars in the down color, both flat and semi-transparent.
+
+- `pane` (default): its own pane below the price pane, a fifth of the chart's height (at least 48 pixels) with its own scale in compact units (`1.2K`, `3.4M`, `1.1B`). The separator between the panes can be dragged; until it is, the pane keeps its share as the chart resizes.
+- `overlay`: at the bottom of the price pane on a hidden scale of its own, the tallest visible bar reaching 22% of the pane. It never changes the price scale.
+- `none`: no volume.
+
+When the loaded bars carry no volume (every `volume` is undefined, as for many indices and quote-only feeds), the histogram is hidden, whatever the mode, and comes back once bars with volume load. The last bar's volume follows realtime updates. The legend at the top of the volume pane (in overlay mode, under the price legend) shows the volume of the bar under the pointer. Trading overlay lines always stay in the price pane.
+
+```ts
+const view = createChartView(container, { feed, instrument: 'MOCK:ACME', timeframe: '5m', volume: 'overlay' });
+view.setVolume('pane');
+```
 
 ### Data loading
 
@@ -159,6 +175,7 @@ await series.loadOlder();
 | `--tdk-color-accent` | `line` (and the area fill, derived from it) |
 | `--tdk-color-buy`, `--tdk-color-sell` | Rising and falling bars, buy and sell orders and fills |
 | `--tdk-color-take-profit`, `--tdk-color-stop-loss`, `--tdk-color-position` | Trading overlay lines |
+| `--tdk-color-volume-up`, `--tdk-color-volume-down` | `volumeUp`, `volumeDown`: volume bars. Default: the up and down colors at 50% opacity (derived again when only `--tdk-color-buy` or `--tdk-color-sell` is set) |
 | `--tdk-font-family` | Every text on the chart |
 
 ## `attachTrading(view, session, options)`

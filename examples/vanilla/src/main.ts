@@ -3,7 +3,7 @@
 // BrokerSession over MockBroker and MockFeed.
 import '@tickdeck/elements/define';
 import { AckTimeoutError, BrokerSession, MockBroker } from '@tickdeck/broker';
-import { attachTrading, createChartView, type ChartStyle, type PriceScaleMode } from '@tickdeck/chart';
+import { attachTrading, createChartView, type ChartStyle, type PriceScaleMode, type VolumeMode } from '@tickdeck/chart';
 import { addExact, subtractExact } from '@tickdeck/core';
 import { MockFeed } from '@tickdeck/datafeed';
 import type {
@@ -24,6 +24,7 @@ const instrumentSelect = $<HTMLSelectElement>('instrument');
 const timeframeSelect = $<HTMLSelectElement>('timeframe');
 const styleSelect = $<HTMLSelectElement>('style');
 const scaleSelect = $<HTMLSelectElement>('scale');
+const volumeSelect = $<HTMLSelectElement>('volume');
 const themeButton = $<HTMLButtonElement>('theme');
 const marketForm = $<HTMLFormElement>('market');
 const marketInput = $<HTMLInputElement>('market-price');
@@ -67,7 +68,7 @@ trading.on('actionError', ({ error }) => {
 });
 view.on('error', ({ operation, error }) => notify(`Could not load ${operation === 'instrument' ? 'the instrument' : 'history'}`, String(error)));
 
-// ----- Instrument, timeframe, style, scale and theme -------------------------------
+// ----- Instrument, timeframe, style, scale, volume and theme -----------------------
 
 for (const { id, name } of feed.instruments) instrumentSelect.add(new Option(name, id));
 instrumentSelect.value = instrument;
@@ -86,6 +87,7 @@ instrumentSelect.addEventListener('change', () => void selectInstrument(instrume
 timeframeSelect.addEventListener('change', () => view.setTimeframe(timeframeSelect.value));
 styleSelect.addEventListener('change', () => view.setChartStyle(styleSelect.value as ChartStyle));
 scaleSelect.addEventListener('change', () => view.setPriceScaleMode(scaleSelect.value as PriceScaleMode));
+volumeSelect.addEventListener('change', () => view.setVolume(volumeSelect.value as VolumeMode));
 
 function applyTheme(next: Theme): void {
   theme = next;

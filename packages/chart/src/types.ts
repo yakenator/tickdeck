@@ -12,6 +12,9 @@ export type ChartStyle = 'candles' | 'bars' | 'line' | 'area';
  */
 export type PriceScaleMode = 'normal' | 'log' | 'percent' | 'indexed';
 
+/** How volume is shown: in its own pane below the prices, at the bottom of the price pane, or not at all. */
+export type VolumeMode = 'pane' | 'overlay' | 'none';
+
 /** Where the pointer is over the chart. */
 export interface ChartCrosshair {
   /** Open time of the bar under the pointer, UTC epoch milliseconds. Extrapolated past the loaded bars. */
@@ -28,6 +31,7 @@ export interface ChartState {
   timeframe: string;
   style: ChartStyle;
   priceScaleMode: PriceScaleMode;
+  volume: VolumeMode;
   /** Loaded bars, oldest first. */
   bars: readonly Bar[];
 }

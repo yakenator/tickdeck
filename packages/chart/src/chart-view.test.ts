@@ -1,8 +1,18 @@
 // @vitest-environment happy-dom
-import { MockFeed, type BarStreamListener } from '@tickdeck/datafeed';
+import { MockFeed, type BarStreamListener, type BarStreamRequest, type HistoryPage, type HistoryRequest } from '@tickdeck/datafeed';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BarSeriesChange } from './bar-series';
 import { chartViewInternals, createChartView, type ChartView, type ChartViewError, type ChartViewOptions } from './chart-view';
+import {
+  CANDLE_PANE,
+  VOLUME_AXIS,
+  VOLUME_INDICATOR,
+  VOLUME_OVERLAY_SHARE,
+  VOLUME_PANE,
+  volumeOverlayRange,
+  type EngineChart,
+  type VolumeColors,
+} from './engine';
 import { chartThemes } from './theme';
 import { ManualClock, createContainer, settle } from './test/dom';
 
@@ -11,9 +21,22 @@ const ORIGIN = Date.UTC(2024, 0, 1);
 
 const views: ChartView[] = [];
 
-function setup(options: { minutes?: number; pageSize?: number; timeframe?: string } = {}) {
+/** A mock feed whose bars carry no volume, like an index or a quote-only source. */
+class NoVolumeFeed extends MockFeed {
+  override async loadHistory(request: HistoryRequest): Promise<HistoryPage> {
+    const page = await super.loadHistory(request);
+    return { ...page, bars: page.bars.map(({ volume: _volume, ...bar }) => bar) };
+  }
+
+  override streamBars(request: BarStreamRequest, listener: BarStreamListener) {
+    return super.streamBars(request, { ...listener, onBar: ({ volume: _volume, ...bar }) => listener.onBar(bar) });
+  }
+}
+
+function setup(options: { minutes?: number; pageSize?: number; timeframe?: string; volume?: ChartViewOptions['volume']; noVolume?: boolean } = {}) {
   const clock = new ManualClock(ORIGIN + (options.minutes ?? 6_000) * MINUTE + 30_000);
-  const feed = new MockFeed({ autoTick: false, scheduler: clock, historyStart: ORIGIN });
+  const Feed = options.noVolume ? NoVolumeFeed : MockFeed;
+  const feed = new Feed({ autoTick: false, scheduler: clock, historyStart: ORIGIN });
   const history = vi.spyOn(feed, 'loadHistory');
   const container = createContainer();
   const view = createChartView(container, {
@@ -22,6 +45,7 @@ function setup(options: { minutes?: number; pageSize?: number; timeframe?: strin
     timeframe: options.timeframe ?? '1m',
     pageSize: options.pageSize ?? 100,
     scheduler: clock,
+    volume: options.volume,
   });
   views.push(view);
   const engine = chartViewInternals(view).engine;
@@ -341,5 +365,106 @@ describe('createChartView: keyboard and accessibility', () => {
     expect(press(host)).toBe(true);
     expect(press(input)).toBe(false);
     host.remove();
+  });
+});
+
+describe('createChartView: volume', () => {
+  const volumeIndicator = (engine: EngineChart) => engine.getIndicators({ id: VOLUME_INDICATOR })[0];
+  const priceRange = (engine: EngineChart) => {
+    const { from, to } = engine.getYAxes({ paneId: CANDLE_PANE }).find((axis) => axis.id !== VOLUME_AXIS)!.getRange();
+    return { from, to };
+  };
+
+  it('shows volume in its own pane below the prices by default', async () => {
+    const { view, engine } = setup();
+    await settle(20);
+    expect(view.volume.value).toBe('pane');
+    expect(view.getState().volume).toBe('pane');
+    expect(volumeIndicator(engine)).toMatchObject({ paneId: VOLUME_PANE, shortName: 'Volume', shouldFormatBigNumber: true });
+    // A fifth of the chart (500 pixels in these tests), below the price pane.
+    expect(engine.getSize(VOLUME_PANE)?.height).toBe(100);
+    expect(engine.getSize(VOLUME_PANE)!.top).toBeGreaterThan(engine.getSize(CANDLE_PANE)!.top);
+    const last = volumeIndicator(engine)!.result.at(-1) as { volume: number };
+    expect(last.volume).toBe(view.bars.at(-1)?.volume);
+    expect((volumeIndicator(engine)!.extendData as VolumeColors).up).toBe(chartThemes.light.volumeUp);
+  });
+
+  it('switches between pane, overlay and none; the overlay never moves the price scale', async () => {
+    const { view, engine } = setup({ volume: 'none' });
+    await settle(20);
+    expect(engine.getIndicators()).toEqual([]);
+    const withoutVolume = priceRange(engine);
+
+    view.setVolume('overlay');
+    await settle(20);
+    expect(view.volume.value).toBe('overlay');
+    expect(volumeIndicator(engine)).toMatchObject({ paneId: CANDLE_PANE, yAxisId: VOLUME_AXIS });
+    expect(engine.getDom(VOLUME_PANE)).toBeNull();
+    expect(priceRange(engine)).toEqual(withoutVolume);
+    // The volume scale starts at 0 and puts the tallest visible bar at the bottom 22% of the pane.
+    const volumeAxis = engine.getYAxes({ paneId: CANDLE_PANE, id: VOLUME_AXIS })[0]!;
+    const visible = engine.getVisibleRange();
+    const visibleMax = Math.max(...view.bars.slice(visible.realFrom, visible.realTo).map((bar) => bar.volume ?? 0));
+    expect(volumeAxis.getRange()).toMatchObject({ from: 0, to: visibleMax / VOLUME_OVERLAY_SHARE });
+
+    view.setPriceScaleMode('log');
+    await settle(20);
+    expect(engine.getYAxes({ paneId: CANDLE_PANE }).map((axis) => [axis.id === VOLUME_AXIS, axis.name])).toEqual([
+      [false, 'logarithm'],
+      [true, 'normal'],
+    ]);
+    view.setPriceScaleMode('normal');
+
+    view.setVolume('pane');
+    await settle(20);
+    expect(volumeIndicator(engine)?.paneId).toBe(VOLUME_PANE);
+    expect(engine.getYAxes({ paneId: CANDLE_PANE, id: VOLUME_AXIS })).toEqual([]);
+
+    view.setVolume('none');
+    await settle(20);
+    expect(engine.getIndicators()).toEqual([]);
+    expect(engine.getDom(VOLUME_PANE)).toBeNull();
+    expect(() => view.setVolume('below' as never)).toThrow(RangeError);
+  });
+
+  it('hides the histogram while the bars carry no volume', async () => {
+    const { view, engine, clock, feed } = setup({ noVolume: true });
+    await settle(20);
+    expect(view.volume.value).toBe('pane');
+    expect(view.bars.every((bar) => bar.volume === undefined)).toBe(true);
+    expect(engine.getIndicators()).toEqual([]);
+    expect(engine.getDom(VOLUME_PANE)).toBeNull();
+    clock.advance(MINUTE);
+    await feed.tick();
+    expect(engine.getIndicators()).toEqual([]);
+  });
+
+  it('follows the volume of the last bar as it updates', async () => {
+    const { view, engine, clock, feed } = setup();
+    await settle(20);
+    for (const step of [10_000, 20_000, MINUTE]) {
+      clock.advance(step);
+      await feed.tick();
+      await settle();
+      expect((volumeIndicator(engine)!.result.at(-1) as { volume: number }).volume).toBe(view.bars.at(-1)?.volume);
+    }
+  });
+
+  it('colors the bars from the theme and the volume tokens', async () => {
+    const { view, engine, container } = setup();
+    await settle(20);
+    view.setTheme('dark');
+    expect(volumeIndicator(engine)!.extendData).toMatchObject({ up: chartThemes.dark.volumeUp, down: chartThemes.dark.volumeDown });
+    container.style.setProperty('--tdk-color-volume-up', 'rgba(0, 0, 255, 0.4)');
+    container.style.setProperty('--tdk-color-sell', '#aa0000');
+    view.setTheme('light');
+    expect(view.colors.value).toMatchObject({ volumeUp: 'rgba(0, 0, 255, 0.4)', volumeDown: 'rgba(170, 0, 0, 0.5)' });
+    expect(volumeIndicator(engine)!.extendData).toMatchObject({ up: 'rgba(0, 0, 255, 0.4)', down: 'rgba(170, 0, 0, 0.5)' });
+  });
+
+  it('scales overlaid volume from zero to its share of the pane', () => {
+    expect(volumeOverlayRange({ to: 1100 })).toMatchObject({ from: 0, to: 5000, realFrom: 0, realTo: 5000, displayTo: 5000 });
+    expect(volumeOverlayRange({ to: 300 }, 0.5).to).toBe(600);
+    expect(volumeOverlayRange({ to: 0 }).to).toBe(1);
   });
 });

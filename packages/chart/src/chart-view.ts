@@ -15,16 +15,21 @@ import { BarSeries, type BarSeriesChange } from './bar-series';
 import {
   AXIS_NAMES,
   CANDLE_PANE,
+  VOLUME_AXIS,
+  VOLUME_INDICATOR,
+  VOLUME_PANE,
   engineStyles,
   enginePeriod,
   ensureEngineExtensions,
   toEngineBar,
+  volumeOverlayRange,
   type EngineBar,
   type EngineChart,
+  type VolumeColors,
 } from './engine';
 import { formatPrice, priceDecimals, snapPrice } from './price';
-import { readChartColorTokens, resolveChartColors, type ChartColors, type ChartThemeName } from './theme';
-import type { ChartCrosshair, ChartState, ChartStyle, PriceScaleMode } from './types';
+import { readChartColorTokens, resolveChartColors, withAlpha, type ChartColors, type ChartThemeName } from './theme';
+import type { ChartCrosshair, ChartState, ChartStyle, PriceScaleMode, VolumeMode } from './types';
 
 export interface ChartViewOptions {
   /** Where bars and instrument metadata come from. */
@@ -37,6 +42,12 @@ export interface ChartViewOptions {
   style?: ChartStyle;
   /** Default `normal`. */
   priceScaleMode?: PriceScaleMode;
+  /**
+   * Volume histogram: `pane` (default) in its own pane below the prices,
+   * `overlay` at the bottom of the price pane on its own scale, or `none`.
+   * Hidden while the loaded bars carry no volume.
+   */
+  volume?: VolumeMode;
   /** Default `light`. */
   theme?: ChartThemeName;
   /** Colors applied over the theme and the container's `--tdk-*` tokens. */
@@ -76,6 +87,8 @@ export interface ChartView {
   readonly timeframe: ReadonlyObservableValue<string>;
   readonly chartStyle: ReadonlyObservableValue<ChartStyle>;
   readonly priceScaleMode: ReadonlyObservableValue<PriceScaleMode>;
+  /** How volume is shown: `pane`, `overlay` or `none`. The histogram is hidden while the loaded bars carry no volume. */
+  readonly volume: ReadonlyObservableValue<VolumeMode>;
   readonly theme: ReadonlyObservableValue<ChartThemeName>;
   /** The colors in use: the theme, the container's `--tdk-*` tokens, then overrides. */
   readonly colors: ReadonlyObservableValue<ChartColors>;
@@ -99,6 +112,8 @@ export interface ChartView {
   setTimeframe(timeframe: string): void;
   setChartStyle(style: ChartStyle): void;
   setPriceScaleMode(mode: PriceScaleMode): void;
+  /** Shows volume in its own pane, at the bottom of the price pane, or not at all. */
+  setVolume(mode: VolumeMode): void;
   /**
    * Switches between the built-in light and dark colors. `--tdk-*` tokens on
    * the container still take precedence, and are read again. `colors`
@@ -141,6 +156,10 @@ export function chartViewInternals(view: ChartView): ChartViewInternals {
 
 const CHART_STYLES: readonly ChartStyle[] = ['candles', 'bars', 'line', 'area'];
 const SCALE_MODES: readonly PriceScaleMode[] = ['normal', 'log', 'percent', 'indexed'];
+const VOLUME_MODES: readonly VolumeMode[] = ['pane', 'overlay', 'none'];
+/** The volume pane's share of the chart's height, and its smallest height in pixels. */
+const VOLUME_PANE_SHARE = 0.2;
+const VOLUME_PANE_MIN_HEIGHT = 48;
 const THEMES: readonly ChartThemeName[] = ['light', 'dark'];
 
 function sameCrosshair(a: ChartCrosshair | undefined, b: ChartCrosshair | undefined): boolean {
@@ -173,6 +192,7 @@ class ChartViewImpl implements ChartView {
   readonly timeframe: ReadonlyObservableValue<string>;
   readonly chartStyle: ReadonlyObservableValue<ChartStyle>;
   readonly priceScaleMode: ReadonlyObservableValue<PriceScaleMode>;
+  readonly volume: ReadonlyObservableValue<VolumeMode>;
   readonly theme: ReadonlyObservableValue<ChartThemeName>;
   readonly colors: ReadonlyObservableValue<ChartColors>;
   readonly loading: ReadonlyObservableValue<boolean>;
@@ -185,6 +205,7 @@ class ChartViewImpl implements ChartView {
   readonly #timeframe: ObservableValue<string>;
   readonly #chartStyle: ObservableValue<ChartStyle>;
   readonly #priceScaleMode: ObservableValue<PriceScaleMode>;
+  readonly #volume: ObservableValue<VolumeMode>;
   readonly #theme: ObservableValue<ChartThemeName>;
   readonly #colors: ObservableValue<ChartColors>;
   readonly #loading = new ObservableValue(false);
@@ -201,6 +222,13 @@ class ChartViewImpl implements ChartView {
   #resolvingInstrument = false;
   #historyRequests = 0;
   #disposed = false;
+  /** The price pane's own axis; an overlaid volume histogram has a second one. */
+  #priceAxisId = '';
+  /** What the chart draws now: `volume`, or `none` while the bars carry no volume. */
+  #volumeShown: VolumeMode = 'none';
+  /** The volume pane's height as last set here; a different height means the user resized it. */
+  #volumePaneHeight: number | undefined;
+  #resizeObserver: ResizeObserver | undefined;
 
   constructor(container: HTMLElement, options: ChartViewOptions) {
     if (!tryParseTimeframe(options.timeframe)) throw new RangeError(`Invalid timeframe "${options.timeframe}"`);
@@ -215,6 +243,7 @@ class ChartViewImpl implements ChartView {
     this.#timeframe = new ObservableValue(options.timeframe);
     this.#chartStyle = new ObservableValue(checked(options.style ?? 'candles', CHART_STYLES, 'chart style'));
     this.#priceScaleMode = new ObservableValue(checked(options.priceScaleMode ?? 'normal', SCALE_MODES, 'price scale mode'));
+    this.#volume = new ObservableValue(checked(options.volume ?? 'pane', VOLUME_MODES, 'volume mode'));
     this.#theme = new ObservableValue(checked(options.theme ?? 'light', THEMES, 'theme'));
     this.#colors = new ObservableValue(this.#resolveColors(), { equals: sameColors });
 
@@ -223,6 +252,7 @@ class ChartViewImpl implements ChartView {
     this.timeframe = this.#timeframe.asReadonly();
     this.chartStyle = this.#chartStyle.asReadonly();
     this.priceScaleMode = this.#priceScaleMode.asReadonly();
+    this.volume = this.#volume.asReadonly();
     this.theme = this.#theme.asReadonly();
     this.colors = this.#colors.asReadonly();
     this.loading = this.#loading.asReadonly();
@@ -234,6 +264,7 @@ class ChartViewImpl implements ChartView {
     });
     if (!engine) throw new Error('The chart engine could not be created');
     this.#engine = engine;
+    this.#priceAxisId = engine.getYAxes({ paneId: CANDLE_PANE })[0]?.id ?? '';
     this.#paintBackground();
     // The engine's root takes keyboard focus (Shift+arrows scroll, Shift+plus and minus zoom); it is named after what it shows.
     const root = engine.getDom();
@@ -244,7 +275,11 @@ class ChartViewImpl implements ChartView {
     root?.addEventListener('focus', this.#onFocus);
     root?.addEventListener('blur', this.#onBlur);
     if (this.#priceScaleMode.value !== 'normal') {
-      engine.overrideYAxis({ paneId: CANDLE_PANE, name: AXIS_NAMES[this.#priceScaleMode.value] });
+      engine.overrideYAxis({ paneId: CANDLE_PANE, id: this.#priceAxisId, name: AXIS_NAMES[this.#priceScaleMode.value] });
+    }
+    if (typeof ResizeObserver === 'function') {
+      this.#resizeObserver = new ResizeObserver(() => this.#keepVolumePaneShare());
+      this.#resizeObserver.observe(container);
     }
     engine.setPeriod(enginePeriod(options.timeframe));
     this.#applyTitle();
@@ -319,7 +354,13 @@ class ChartViewImpl implements ChartView {
     this.#assertLive();
     if (checked(mode, SCALE_MODES, 'price scale mode') === this.#priceScaleMode.value) return;
     this.#priceScaleMode.set(mode);
-    this.#engine.overrideYAxis({ paneId: CANDLE_PANE, name: AXIS_NAMES[mode] });
+    this.#engine.overrideYAxis({ paneId: CANDLE_PANE, id: this.#priceAxisId, name: AXIS_NAMES[mode] });
+  }
+
+  setVolume(mode: VolumeMode): void {
+    this.#assertLive();
+    this.#volume.set(checked(mode, VOLUME_MODES, 'volume mode'));
+    this.#syncVolume();
   }
 
   setTheme(theme: ChartThemeName, colors?: Partial<ChartColors>): void {
@@ -330,6 +371,7 @@ class ChartViewImpl implements ChartView {
     this.#colors.set(this.#resolveColors());
     this.#engine.setStyles(engineStyles(this.#colors.value, this.#chartStyle.value));
     this.#paintBackground();
+    if (this.#volumeShown !== 'none') this.#engine.overrideIndicator({ name: VOLUME_INDICATOR, id: VOLUME_INDICATOR, extendData: this.#volumeColors() });
   }
 
   formatPrice(price: number): string {
@@ -384,6 +426,7 @@ class ChartViewImpl implements ChartView {
       timeframe: this.#timeframe.value,
       style: this.#chartStyle.value,
       priceScaleMode: this.#priceScaleMode.value,
+      volume: this.#volume.value,
       bars: [...this.bars],
     };
   }
@@ -397,6 +440,7 @@ class ChartViewImpl implements ChartView {
     this.#dropSeries();
     this.#realtime = undefined;
     this.container.removeEventListener('pointerleave', this.#onPointerLeave);
+    this.#resizeObserver?.disconnect();
     const root = this.#engine.getDom();
     root?.removeEventListener('focus', this.#onFocus);
     root?.removeEventListener('blur', this.#onBlur);
@@ -427,6 +471,63 @@ class ChartViewImpl implements ChartView {
   #applyLabel(): void {
     const name = this.#instrumentInfo.value?.name ?? this.#instrument.value;
     this.#engine.getDom()?.setAttribute('aria-label', `${name}, ${this.#timeframe.value} chart`);
+  }
+
+  #volumeColors(): VolumeColors {
+    const colors = this.#colors.value;
+    return { up: colors.volumeUp, down: colors.volumeDown, flat: withAlpha(colors.textMuted, 0.5) ?? colors.textMuted };
+  }
+
+  /**
+   * Shows the volume histogram the way `volume` asks, or hides it while the
+   * loaded bars carry no volume. While bars are still loading it keeps what
+   * it shows, so switching instruments does not flash the pane.
+   */
+  #syncVolume(): void {
+    if (this.#disposed) return;
+    const bars = this.bars;
+    const hasVolume = bars.length === 0 ? this.#volumeShown !== 'none' : bars.some((bar) => bar.volume !== undefined);
+    const wanted: VolumeMode = hasVolume ? this.#volume.value : 'none';
+    if (wanted === this.#volumeShown) return;
+    const engine = this.#engine;
+    if (this.#volumeShown !== 'none') engine.removeIndicator({ id: VOLUME_INDICATOR });
+    this.#volumePaneHeight = undefined;
+    if (wanted === 'pane') {
+      engine.createIndicator({ name: VOLUME_INDICATOR, id: VOLUME_INDICATOR, paneId: VOLUME_PANE, extendData: this.#volumeColors() });
+      this.#setVolumePaneHeight();
+    } else if (wanted === 'overlay') {
+      // A scale of its own, without an axis on screen: the bars stay at the bottom and never move the price scale.
+      engine.createYAxis({
+        paneId: CANDLE_PANE,
+        id: VOLUME_AXIS,
+        needWidget: false,
+        scrollZoomEnabled: false,
+        gap: { top: 0, bottom: 0 },
+        createRange: ({ defaultRange }) => volumeOverlayRange(defaultRange),
+      });
+      engine.createIndicator(
+        { name: VOLUME_INDICATOR, id: VOLUME_INDICATOR, paneId: CANDLE_PANE, yAxisId: VOLUME_AXIS, extendData: this.#volumeColors() },
+        true,
+      );
+    }
+    this.#volumeShown = wanted;
+  }
+
+  #setVolumePaneHeight(): void {
+    const height = Math.max(VOLUME_PANE_MIN_HEIGHT, Math.round(this.container.clientHeight * VOLUME_PANE_SHARE));
+    this.#engine.setPaneOptions({ id: VOLUME_PANE, height, minHeight: VOLUME_PANE_MIN_HEIGHT });
+    this.#volumePaneHeight = height;
+  }
+
+  /** Keeps the volume pane at its share of the chart as the container resizes, until the user drags its separator. */
+  #keepVolumePaneShare(): void {
+    if (this.#disposed || this.#volumeShown !== 'pane' || this.#volumePaneHeight === undefined) return;
+    const current = this.#engine.getSize(VOLUME_PANE)?.height;
+    if (current !== undefined && Math.round(current) !== this.#volumePaneHeight) {
+      this.#volumePaneHeight = undefined;
+      return;
+    }
+    this.#setVolumePaneHeight();
   }
 
   #paintBackground(): void {
@@ -489,6 +590,7 @@ class ChartViewImpl implements ChartView {
   #onSeriesChange(series: BarSeries, change: BarSeriesChange): void {
     if (series !== this.#series) return;
     if (change.kind === 'update' || change.kind === 'append') this.#realtime?.(toEngineBar(change.bar));
+    this.#syncVolume();
     this.#events.emit('bars', change);
   }
 

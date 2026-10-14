@@ -60,7 +60,7 @@ all          → every package except chart-engine, react and vue
 | `core` | Shared trading types (bars, sides, instruments, quotes), exact decimal math for prices, quantities and money (on `BigInt`), trading sessions, the typed event emitter, observable values and other small primitives. No dependencies. |
 | `datafeed` | The data feed contract, plus a mock feed and an HTTP polling adapter (WebSocket streaming follows in P2). |
 | `chart-engine` | Canvas rendering engine, derived from KLineChart by liihuu (Apache-2.0) and being refactored for tickdeck. It has no tickdeck dependencies. |
-| `chart` | The chart view (`createChartView`: series styles, price scale modes, history paging, realtime bars, themes) and the trading overlay (`attachTrading`: order, exit and position lines kept in the autoscaled price range or marked at the pane's edge, fill markers, drag to amend, cancel and close). Panes, sessions and event markers follow. The only package that imports `chart-engine`, so the engine can change without affecting anything above `chart`. |
+| `chart` | The chart view (`createChartView`: series styles, price scale modes, volume in a pane or overlaid, history paging, realtime bars, themes) and the trading overlay (`attachTrading`: order, exit and position lines kept in the autoscaled price range or marked at the pane's edge, fill markers, drag to amend, cancel and close). Panes, sessions and event markers follow. The only package that imports `chart-engine`, so the engine can change without affecting anything above `chart`. |
 | `drawings` | Drawing tool registry (anchors, editing, locking, grouping, snapping) and serialization. |
 | `indicators` | Built-in indicators and the custom indicator API: inputs, outputs, plot styles and a compute function. |
 | `layout` | Grids of up to eight charts, and linking of instrument, timeframe, crosshair, time and visible range across them. |
@@ -175,6 +175,7 @@ The chart is not an element yet: `createChartView(container, options)` from `cha
 | `--tdk-color-info`, `--tdk-color-success`, `--tdk-color-warning`, `--tdk-color-error` | elements | Notifications, results, warnings and invalid fields |
 | `--tdk-color-focus` | elements | Focus rings |
 | `--tdk-color-take-profit`, `--tdk-color-stop-loss`, `--tdk-color-position` | chart | Take-profit, stop-loss and position lines |
+| `--tdk-color-volume-up`, `--tdk-color-volume-down` | chart | Volume bars of rising and falling bars (default: buy and sell at 50% opacity) |
 | `--tdk-font-family` | elements, chart | All text |
 | `--tdk-font-size-1`, `-2`, `-3` | elements | Small text, body text, prices and headings |
 | `--tdk-space-1`, `-2`, `-3` | elements | Spacing |

@@ -3,7 +3,7 @@ import { AckTimeoutError, BrokerSession, MockBroker, type OrderAmendment } from 
 import { MockFeed } from '@tickdeck/datafeed';
 import { afterEach, describe, expect, it } from 'vitest';
 import { chartViewInternals, createChartView } from '../chart-view';
-import { CANDLE_PANE, type EngineChart } from '../engine';
+import { CANDLE_PANE, VOLUME_PANE, type EngineChart } from '../engine';
 import { chartThemes } from '../theme';
 import { createContainer, flush, settle } from '../test/dom';
 import { FILL_OVERLAY, LINE_OVERLAY } from './figures';
@@ -316,12 +316,16 @@ describe('attachTrading: lines outside the bars', () => {
 
   it('keeps orders, exits and positions in the autoscaled price range', async () => {
     const { session, engine, view, idle } = await setup();
+    await idle();
     const bars = priceAxis(engine).getRange();
     expect(bars.to).toBeLessThan(140);
 
     await session.submitOrder({ instrument: ACME, side: 'sell', kind: 'limit', quantity: 1, limitPrice: 140 });
     await idle();
     expect(engine.getAutoscaleValues()).toEqual([140, 140]);
+    // The volume pane below has a scale of its own; the lines stay in the price pane.
+    expect(engine.getIndicators().map((indicator) => indicator.paneId)).toEqual([VOLUME_PANE]);
+    expect(overlaysNamed(engine, LINE_OVERLAY).map((line) => line.paneId)).toEqual([CANDLE_PANE]);
     const range = priceAxis(engine).getRange();
     // The axis keeps its margins around the wider span, so the bottom moves down a little too.
     expect(range.from).toBeLessThanOrEqual(bars.from);
@@ -331,6 +335,7 @@ describe('attachTrading: lines outside the bars', () => {
 
   it('can leave the lines out of the range, and then marks them at the edge', async () => {
     const { session, engine, overlay, idle } = await setup({ overlay: { autoscaleTradingLines: false } });
+    await idle();
     const bars = priceAxis(engine).getRange();
     await session.submitOrder({ instrument: ACME, side: 'sell', kind: 'limit', quantity: 1, limitPrice: 140 });
     await session.submitOrder({ instrument: ACME, side: 'sell', kind: 'limit', quantity: 2, limitPrice: 150 });

@@ -27,6 +27,10 @@ export interface ChartColors {
   line: string;
   /** Area series fill: a flat, semi-transparent color. Derived from `line` when a token sets it. */
   areaFill: string;
+  /** Volume bars of rising bars: flat and semi-transparent. Token: `--tdk-color-volume-up`; derived from `up` when only that changes. */
+  volumeUp: string;
+  /** Volume bars of falling bars. Token: `--tdk-color-volume-down`; derived from `down` when only that changes. */
+  volumeDown: string;
   /** Buy orders and buy fills. Token: `--tdk-color-buy`. */
   buy: string;
   /** Sell orders and sell fills. Token: `--tdk-color-sell`. */
@@ -61,6 +65,8 @@ export const chartThemes: Readonly<Record<ChartThemeName, Readonly<ChartColors>>
     down: '#c4314b',
     line: '#2563eb',
     areaFill: 'rgba(37, 99, 235, 0.16)',
+    volumeUp: 'rgba(26, 127, 90, 0.5)',
+    volumeDown: 'rgba(196, 49, 75, 0.5)',
     buy: '#1a7f5a',
     sell: '#c4314b',
     takeProfit: '#0f8b8d',
@@ -82,6 +88,8 @@ export const chartThemes: Readonly<Record<ChartThemeName, Readonly<ChartColors>>
     down: '#e5484d',
     line: '#4f8cff',
     areaFill: 'rgba(79, 140, 255, 0.18)',
+    volumeUp: 'rgba(46, 164, 122, 0.5)',
+    volumeDown: 'rgba(229, 72, 77, 0.5)',
     buy: '#2ea47a',
     sell: '#e5484d',
     takeProfit: '#22a6a8',
@@ -106,6 +114,8 @@ const TOKENS: ReadonlyArray<readonly [string, readonly (keyof ChartColors)[]]> =
   ['--tdk-color-take-profit', ['takeProfit']],
   ['--tdk-color-stop-loss', ['stopLoss']],
   ['--tdk-color-position', ['position']],
+  ['--tdk-color-volume-up', ['volumeUp']],
+  ['--tdk-color-volume-down', ['volumeDown']],
   ['--tdk-font-family', ['fontFamily']],
 ];
 
@@ -132,10 +142,14 @@ export function withAlpha(color: string, alpha: number): string | undefined {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+/** Share of opacity of volume bars derived from the up and down colors. */
+const VOLUME_ALPHA = 0.5;
+
 /**
  * Colors for a theme: the built-in set, then any `--tdk-*` tokens, then
  * explicit overrides. When `line` changes without an explicit `areaFill`, the
- * fill is derived from it.
+ * fill is derived from it; when `up` or `down` change without explicit volume
+ * colors, those are derived from them.
  */
 export function resolveChartColors(
   theme: ChartThemeName,
@@ -146,6 +160,12 @@ export function resolveChartColors(
   const colors: ChartColors = { ...base, ...tokens, ...overrides };
   if (overrides.areaFill === undefined && colors.line !== base.line) {
     colors.areaFill = withAlpha(colors.line, 0.16) ?? base.areaFill;
+  }
+  if (overrides.volumeUp === undefined && tokens.volumeUp === undefined && colors.up !== base.up) {
+    colors.volumeUp = withAlpha(colors.up, VOLUME_ALPHA) ?? colors.up;
+  }
+  if (overrides.volumeDown === undefined && tokens.volumeDown === undefined && colors.down !== base.down) {
+    colors.volumeDown = withAlpha(colors.down, VOLUME_ALPHA) ?? colors.down;
   }
   return colors;
 }

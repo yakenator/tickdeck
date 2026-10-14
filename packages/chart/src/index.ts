@@ -2,7 +2,7 @@ import { version } from '../package.json';
 
 export const VERSION: string = version;
 
-export type { ChartCrosshair, ChartState, ChartStyle, PriceScaleMode } from './types';
+export type { ChartCrosshair, ChartState, ChartStyle, PriceScaleMode, VolumeMode } from './types';
 export {
   createChartView,
   type ChartView,

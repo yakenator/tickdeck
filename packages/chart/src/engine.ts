@@ -1,5 +1,5 @@
 // The only module besides the trading figures that knows the engine's types. Nothing here is exported publicly.
-import { registerOverlay, registerYAxis, type Chart as EngineChart } from '@tickdeck/chart-engine';
+import { registerIndicator, registerOverlay, registerYAxis, type Chart as EngineChart } from '@tickdeck/chart-engine';
 import type { Bar } from '@tickdeck/core';
 import { parseTimeframe } from '@tickdeck/datafeed';
 import type { ChartColors } from './theme';
@@ -13,10 +13,41 @@ type EngineOverlayTemplate = Parameters<typeof registerOverlay>[0];
 export type EngineBar = ReturnType<EngineChart['getDataList']>[number];
 export type EngineOverlayEvent = Parameters<NonNullable<EngineOverlayCreate['onClick']>>[0];
 export type EngineFigure = Extract<ReturnType<NonNullable<EngineOverlayTemplate['createPointFigures']>>, readonly unknown[]>[number];
+export type EngineAxisRange = ReturnType<ReturnType<EngineChart['getYAxes']>[number]['getRange']>;
 
 export const CANDLE_PANE = 'candle_pane';
 
 const INDEXED_AXIS = 'tdkIndexed';
+
+/** The volume histogram: an indicator, its own pane, or its own hidden scale in the price pane. */
+export const VOLUME_INDICATOR = 'tdkVolume';
+export const VOLUME_PANE = 'tdk_volume_pane';
+export const VOLUME_AXIS = 'tdk_volume_axis';
+/** Share of the price pane's height the tallest volume bar reaches in overlay mode. */
+export const VOLUME_OVERLAY_SHARE = 0.22;
+
+/** Flat colors of volume bars: rising, falling and unchanged bars. Passed as the indicator's `extendData`. */
+export interface VolumeColors {
+  up: string;
+  down: string;
+  flat: string;
+}
+
+interface VolumeDatum {
+  volume?: number;
+  open: number;
+  close: number;
+}
+
+/**
+ * The volume scale in overlay mode: from 0, with the tallest visible bar at
+ * `share` of the pane's height, so the bars stay at the bottom and the price
+ * scale is never involved.
+ */
+export function volumeOverlayRange(range: { to: number }, share: number = VOLUME_OVERLAY_SHARE): EngineAxisRange {
+  const to = range.to > 0 ? range.to / share : 1;
+  return { from: 0, to, range: to, realFrom: 0, realTo: to, realRange: to, displayFrom: 0, displayTo: to, displayRange: to };
+}
 
 export const AXIS_NAMES: Readonly<Record<PriceScaleMode, string>> = {
   normal: 'normal',
@@ -39,6 +70,28 @@ export function ensureEngineExtensions(): void {
   if (registered) return;
   registered = true;
   // Prices relative to the first visible bar's close, which reads as 100.
+  registerIndicator<VolumeDatum, number, VolumeColors>({
+    name: VOLUME_INDICATOR,
+    shortName: 'Volume',
+    series: 'volume',
+    precision: 0,
+    shouldFormatBigNumber: true,
+    minValue: 0,
+    figures: [
+      {
+        key: 'volume',
+        title: '',
+        type: 'bar',
+        baseValue: 0,
+        styles: ({ data, indicator }) => {
+          const bar = data.current;
+          const colors = indicator.extendData as VolumeColors;
+          return { color: !bar ? colors.flat : bar.close > bar.open ? colors.up : bar.close < bar.open ? colors.down : colors.flat };
+        },
+      },
+    ],
+    calc: (bars) => bars.map((bar) => ({ volume: bar.volume, open: bar.open, close: bar.close })),
+  });
   registerYAxis({
     name: INDEXED_AXIS,
     minSpan: () => 0.01,
@@ -127,6 +180,13 @@ export function engineStyles(colors: ChartColors, style: ChartStyle): EngineStyl
         title: { color: colors.text, family },
         legend: { color: colors.textMuted, family },
         rect: { color: colors.background, borderColor: colors.border },
+      },
+    },
+    // The volume histogram's legend: its name in muted text, the value in the bar's color.
+    indicator: {
+      tooltip: {
+        title: { color: colors.textMuted, family },
+        legend: { color: colors.textMuted, family },
       },
     },
     xAxis: axis,
