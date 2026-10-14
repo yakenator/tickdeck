@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/core",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "description": "Trading types, exact decimal math for prices and quantities, trading sessions, typed events and observable values for tickdeck.",
   "keywords": [
     "tickdeck",
