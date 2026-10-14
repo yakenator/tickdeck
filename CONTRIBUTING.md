@@ -40,7 +40,8 @@ The repository is in Changesets pre mode with the `alpha` tag (`.changeset/pre.j
 
 1. `pnpm changeset version` applies pending changesets (versions and changelogs). Commit the result.
 2. `pnpm build`, then `pnpm changeset publish`. In this workspace Changesets publishes through `pnpm publish`, which replaces `workspace:*` dependencies with the exact version. Never run plain `npm publish` in a package directory: the `workspace:*` ranges would be published as they are.
-3. Run `pnpm changeset pre exit` before the first stable release.
+3. Verify the published packages as a consumer: run `node playground/scripts/update.mjs <version>` once the new version is on the registry. It pins the playground apps and Storybook to that version, installs it from npm, builds, type-checks, runs the Node tests, every Storybook story (interactions and accessibility) and the browser tests, and appends the outcome to `playground/RESULTS.md`. Commit the playground changes and `RESULTS.md`, whether the run passed or not, and fix and re-release if it failed. See [playground/README.md](playground/README.md).
+4. Run `pnpm changeset pre exit` before the first stable release.
 
 ## Ground rules
 

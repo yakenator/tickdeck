@@ -1,0 +1,6 @@
+node_modules
+dist
+dist-site
+e2e-report
+test-results
+__screenshots__

@@ -1,0 +1,87 @@
+name: Playground
+
+# Installs the published @tickdeck/* packages in the playground apps and
+# Storybook, checks every way of adopting them, runs every story as a test and
+# publishes the playground site (with Storybook) to GitHub Pages.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: tickdeck version to verify, or a dist-tag such as latest or alpha
+        required: true
+        default: latest
+  push:
+    branches: [main]
+    paths:
+      - playground/**
+      - .github/workflows/playground.yml
+  schedule:
+    - cron: '17 5 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: playground
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: playground/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify the pinned version
+        if: github.event_name == 'push'
+        run: npm run verify
+      - name: Verify the requested version
+        if: github.event_name != 'push'
+        run: node scripts/update.mjs "$VERSION"
+        env:
+          VERSION: ${{ inputs.version || 'latest' }}
+      - name: Summary
+        if: always() && github.event_name != 'push'
+        run: |
+          {
+            echo "### tickdeck playground"
+            echo
+            sed -n '/^| Date/,/^|---/p' RESULTS.md
+            tail -n 1 RESULTS.md
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playground-test-reports
+          path: |
+            playground/e2e-report
+            playground/storybook/**/__screenshots__
+          retention-days: 14
+      - run: npm run site
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: playground/dist-site
+
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Pages may not be enabled yet (Settings > Pages > Source: GitHub Actions); that must not fail the workflow.
+    continue-on-error: true
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

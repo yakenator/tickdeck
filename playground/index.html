@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>tickdeck playground</title>
+    <meta name="description" content="Every way to adopt tickdeck, installed from the public npm registry and verified on each release." />
+    <style>
+      :root {
+        --bg: #eef0f3;
+        --surface: #ffffff;
+        --surface-2: #f4f6f8;
+        --text: #1b1f24;
+        --muted: #5b6470;
+        --border: #d4d8de;
+        --accent: #2f6fdf;
+        --on-accent: #ffffff;
+        --pass: #1a7f5a;
+        --fail: #c4314b;
+        --flaky: #9a6700;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0d1013;
+          --surface: #15191e;
+          --surface-2: #1f252c;
+          --text: #e6e9ed;
+          --muted: #9aa4af;
+          --border: #343c46;
+          --accent: #6ea1f2;
+          --on-accent: #0b1220;
+          --pass: #4cc38a;
+          --fail: #f2687e;
+          --flaky: #e3b341;
+          color-scheme: dark;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.55 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      a {
+        color: var(--accent);
+      }
+      header,
+      main,
+      footer {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+      header {
+        padding-top: 40px;
+        padding-bottom: 24px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+      h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .version {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: var(--accent);
+        color: var(--on-accent);
+        font-size: 14px;
+        font-weight: 600;
+        vertical-align: middle;
+      }
+      .lead {
+        max-width: 760px;
+        margin: 0;
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr));
+        gap: 16px;
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+        padding: 18px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+      }
+      .card p {
+        margin: 0;
+      }
+      .card .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin-top: auto;
+        font-weight: 600;
+      }
+      .open {
+        padding: 6px 12px;
+        border-radius: 4px;
+        background: var(--accent);
+        color: var(--on-accent);
+        text-decoration: none;
+      }
+      .links a:not(.open) {
+        align-self: center;
+      }
+      pre {
+        margin: 0;
+        padding: 12px;
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--surface-2);
+        font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.92em;
+      }
+      section {
+        margin-bottom: 32px;
+      }
+      section > h2 {
+        margin-bottom: 12px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .table-scroll {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+        vertical-align: top;
+        white-space: nowrap;
+      }
+      td:last-child {
+        white-space: normal;
+        min-width: 240px;
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .status-pass {
+        color: var(--pass);
+        font-weight: 600;
+      }
+      .status-fail {
+        color: var(--fail);
+        font-weight: 600;
+      }
+      .status-flaky {
+        color: var(--flaky);
+        font-weight: 600;
+      }
+      .status-skip {
+        color: var(--muted);
+      }
+      footer {
+        padding-bottom: 40px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>tickdeck playground <span class="version" data-tickdeck-version>0.1.0-alpha.1</span></h1>
+      <p class="lead">
+        Every way to adopt tickdeck, each in a small app that installs the published packages from the public npm registry at one pinned
+        version, exactly as an external project would. Each release is checked here: install, build, type check, Node tests and a browser
+        run that places a limit order with take-profit and stop-loss, fills it and closes it at the take-profit, plus every Storybook
+        story as an interaction and accessibility test. Everything runs on
+        <code>MockFeed</code> and <code>MockBroker</code>, so no market data or broker account is needed.
+      </p>
+    </header>
+
+    <main>
+      <section aria-labelledby="methods">
+        <h2 id="methods">Ways to adopt tickdeck</h2>
+        <div class="grid">
+          <article class="card">
+            <h2>CDN, no build step</h2>
+            <p>
+              One ES module from jsDelivr registers the <code>tdk-*</code> elements and exports every API. A static HTML page is all you
+              need: the chart, order ticket, trade buttons, account panel and notifications on one mock session.
+            </p>
+<pre><code>&lt;script type="module" src="https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.1/dist/tickdeck.js"&gt;&lt;/script&gt;
+&lt;tdk-order-ticket instrument="MOCK:ACME" kind="limit"&gt;&lt;/tdk-order-ticket&gt;
+&lt;script type="module"&gt;
+  import { BrokerSession, MockBroker, MockFeed } from 'https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.1/dist/tickdeck.js';
+  const feed = new MockFeed();
+  const session = new BrokerSession(new MockBroker({ feed }));
+  await session.start();
+  Object.assign(document.querySelector('tdk-order-ticket'), { session, feed });
+&lt;/script&gt;</code></pre>
+            <div class="links">
+              <a class="open" href="./cdn/">Open the CDN page</a>
+              <a href="https://github.com/yakenator/tickdeck/tree/main/playground/apps/cdn">Source</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Web Components with a bundler</h2>
+            <p>
+              The <code>tdk-*</code> custom elements and the chart from npm, bundled with Vite and no framework. This is the full trading
+              screen: instrument, timeframe, style, scale and theme switchers, Alt-click a chart price into the ticket, Modify from the
+              panel, and a take-profit and stop-loss dialog.
+            </p>
+<pre><code>npm install @tickdeck/elements@0.1.0-alpha.1 @tickdeck/chart@0.1.0-alpha.1 @tickdeck/broker@0.1.0-alpha.1 @tickdeck/datafeed@0.1.0-alpha.1
+
+import '@tickdeck/elements/define';
+import { attachTrading, createChartView } from '@tickdeck/chart';
+import { BrokerSession, MockBroker } from '@tickdeck/broker';
+import { MockFeed } from '@tickdeck/datafeed';
+
+const feed = new MockFeed();
+const session = new BrokerSession(new MockBroker({ feed }));
+await session.start();
+attachTrading(createChartView(chart, { feed, instrument: 'MOCK:ACME', timeframe: '1m' }), session);
+Object.assign(ticket, { session, feed });</code></pre>
+            <div class="links">
+              <a class="open" href="./vanilla/">Open the trading screen</a>
+              <a href="https://github.com/yakenator/tickdeck/tree/main/playground/apps/vanilla">Source</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>React</h2>
+            <p>
+              <code>@tickdeck/react</code> wraps each element as a React 19 component: rich props become element properties, callbacks
+              such as <code>onAmend</code> subscribe to its events, and refs reach the element. The chart is created in an effect and
+              disposed on unmount.
+            </p>
+<pre><code>npm install @tickdeck/react@0.1.0-alpha.1 @tickdeck/elements@0.1.0-alpha.1 @tickdeck/chart@0.1.0-alpha.1 @tickdeck/broker@0.1.0-alpha.1 @tickdeck/datafeed@0.1.0-alpha.1
+
+&lt;TdkOrderTicket ref={ticket} session={session} feed={feed} instrument="MOCK:ACME" kind="limit" /&gt;
+&lt;TdkAccountPanel session={session} feed={feed}
+  onAmend={(event) =&gt; ticket.current?.amend(event.detail.order)} /&gt;
+
+useEffect(() =&gt; {
+  const view = createChartView(container.current!, { feed, instrument, timeframe: '1m' });
+  attachTrading(view, session);
+  return () =&gt; view.dispose();
+}, []);</code></pre>
+            <div class="links">
+              <a class="open" href="./react/">Open the React app</a>
+              <a href="https://github.com/yakenator/tickdeck/tree/main/playground/apps/react">Source</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Vue</h2>
+            <p>
+              <code>@tickdeck/vue</code> wraps each element as a Vue 3 component with props, emits such as <code>@amend</code> and the
+              element exposed on the component instance. The chart is created in <code>onMounted</code> and disposed before unmount.
+            </p>
+<pre><code>npm install @tickdeck/vue@0.1.0-alpha.1 @tickdeck/elements@0.1.0-alpha.1 @tickdeck/chart@0.1.0-alpha.1 @tickdeck/broker@0.1.0-alpha.1 @tickdeck/datafeed@0.1.0-alpha.1
+
+&lt;TdkOrderTicket ref="ticket" :session="session" :feed="feed" instrument="MOCK:ACME" kind="limit" /&gt;
+&lt;TdkAccountPanel :session="session" :feed="feed"
+  @amend="({ order }) =&gt; ticket?.element?.amend(order)" /&gt;
+
+onMounted(() =&gt; {
+  view = createChartView(chart.value!, { feed, instrument: 'MOCK:ACME', timeframe: '1m' });
+  attachTrading(view, session);
+});</code></pre>
+            <div class="links">
+              <a class="open" href="./vue/">Open the Vue app</a>
+              <a href="https://github.com/yakenator/tickdeck/tree/main/playground/apps/vue">Source</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Headless in Node</h2>
+            <p>
+              The logic layer needs no DOM. A strategy script places a bracket order on <code>MockBroker</code>, moves the
+              <code>MockFeed</code> market to fill it and to hit the take-profit, and prints the fills and P&amp;L. A second script imports
+              <code>@tickdeck/chart</code>, <code>elements</code> and <code>all</code> in Node and renders the React and Vue wrappers on
+              the server.
+            </p>
+<pre><code>npm install @tickdeck/broker@0.1.0-alpha.1 @tickdeck/datafeed@0.1.0-alpha.1 @tickdeck/core@0.1.0-alpha.1
+
+const feed = new MockFeed({ autoTick: false });
+const session = new BrokerSession(new MockBroker({ feed }));
+await session.start();
+await session.submitOrder({ instrument: 'MOCK:ACME', side: 'buy', kind: 'limit',
+  quantity: 10, limitPrice: 99.5, takeProfit: 101, stopLoss: 99 });
+await feed.setQuote('MOCK:ACME', { bid: 99.47, ask: 99.49 }); // fills the entry</code></pre>
+            <div class="links">
+              <a href="https://github.com/yakenator/tickdeck/tree/main/playground/apps/node">Source</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>TypeScript</h2>
+            <p>
+              A consumer that touches every package, a custom <code>BrokerConnector</code> included, type-checks with
+              <code>moduleResolution</code> <code>bundler</code>, <code>nodenext</code> and <code>node16</code>, with
+              <code>skipLibCheck</code> off so the published declarations are checked too.
+            </p>
+<pre><code>{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": false
+  }
+}</code></pre>
+            <div class="links">
+              <a href="https://github.com/yakenator/tickdeck/tree/main/playground/apps/types">Source</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Storybook</h2>
+            <p>
+              Every element and the chart in known states: each order type, exits as prices or ticks, validation errors, the review
+              step, amend mode, a busy ticket and an acknowledgement timeout, empty and loaded panels, every reason a trade button is
+              disabled, each notification level, every chart style and scale, and a full trading screen. Each story is also a browser
+              test with interactions and accessibility checks.
+            </p>
+<pre><code>// Each story builds its own deterministic state:
+// MockFeed (seed 7, no ticks) + MockBroker + BrokerSession on a fixed clock.
+export const AmendMode = {
+  parameters: { scenario: { state: 'working' } },
+  play: async ({ canvasElement, loaded }) =&gt; {
+    const ticket = canvasElement.querySelector('tdk-order-ticket');
+    await ticket.amend(loaded.scenario.session.orders[0]);
+  },
+};</code></pre>
+            <div class="links">
+              <a class="open" href="./storybook/">Open Storybook</a>
+              <a href="https://github.com/yakenator/tickdeck/tree/main/playground/storybook">Source</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="results">
+        <h2 id="results">Recent verification runs</h2>
+        <p class="muted">
+          After each release, <code>node playground/scripts/update.mjs &lt;version&gt;</code> pins the new version, installs it, runs every
+          check and records a row in <a href="https://github.com/yakenator/tickdeck/blob/main/playground/RESULTS.md">RESULTS.md</a>.
+        </p>
+        <!-- results -->
+      </section>
+    </main>
+
+    <footer>
+      <a href="https://github.com/yakenator/tickdeck">tickdeck on GitHub</a> · Apache License 2.0 ·
+      <a href="https://www.npmjs.com/package/@tickdeck/all">@tickdeck on npm</a>
+    </footer>
+  </body>
+</html>

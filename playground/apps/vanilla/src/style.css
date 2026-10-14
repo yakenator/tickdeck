@@ -1,0 +1,245 @@
+/*
+ * One token set for the page, the chart and the widgets. The chart reads the
+ * --tdk-* tokens from its container (again on every setTheme call); the
+ * widgets read them through their shadow roots. Flat colours only.
+ */
+:root {
+  --app-bg: #e9ecf0;
+  --app-error: #c4314b;
+  --app-on-accent: #ffffff;
+  --tdk-color-surface: #ffffff;
+  --tdk-color-surface-2: #f3f5f7;
+  --tdk-color-text: #1b1f24;
+  --tdk-color-text-muted: #5b6470;
+  --tdk-color-border: #d4d8de;
+  --tdk-color-grid: #eef0f3;
+  --tdk-color-accent: #2f6fdf;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --app-bg: #0d1013;
+  --app-error: #f2687e;
+  --app-on-accent: #0b1220;
+  --tdk-color-surface: #15191e;
+  --tdk-color-surface-2: #1f252c;
+  --tdk-color-text: #e6e9ed;
+  --tdk-color-text-muted: #9aa4af;
+  --tdk-color-border: #343c46;
+  --tdk-color-grid: #20262d;
+  --tdk-color-accent: #5b94f0;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--tdk-color-text);
+  font: 13px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  background: var(--tdk-color-surface);
+  border-bottom: 1px solid var(--tdk-color-border);
+}
+
+.brand {
+  align-self: center;
+  margin-right: 8px;
+  font-size: 15px;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--tdk-color-text-muted);
+}
+
+select,
+input,
+.button {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--tdk-color-border);
+  border-radius: 4px;
+  background: var(--tdk-color-surface);
+  color: var(--tdk-color-text);
+  font: inherit;
+}
+
+input {
+  width: 110px;
+  font-variant-numeric: tabular-nums;
+}
+
+.button {
+  cursor: pointer;
+  background: var(--tdk-color-surface-2);
+}
+
+.button.primary {
+  background: var(--tdk-color-accent);
+  border-color: var(--tdk-color-accent);
+  color: var(--app-on-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--tdk-color-accent);
+  outline-offset: 1px;
+}
+
+.market {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.hint {
+  color: var(--tdk-color-text-muted);
+  font-size: 12px;
+}
+
+.market .hint {
+  align-self: center;
+  min-width: 8em;
+}
+
+.layout {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(360px, 1fr) auto;
+  grid-template-areas:
+    'chart side'
+    'panel panel';
+  gap: 8px;
+  padding: 8px;
+}
+
+.chart-area {
+  grid-area: chart;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--tdk-color-border);
+  border-radius: 4px;
+  background: var(--tdk-color-surface);
+  overflow: hidden;
+}
+
+.chart {
+  flex: 1 1 auto;
+  min-height: 320px;
+}
+
+.chart-status {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 4px 8px;
+  border-top: 1px solid var(--tdk-color-border);
+}
+
+.crosshair {
+  min-width: 6em;
+  font-variant-numeric: tabular-nums;
+}
+
+.side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel {
+  grid-area: panel;
+  min-width: 0;
+  min-height: 220px;
+}
+
+dialog {
+  width: min(320px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--tdk-color-border);
+  border-radius: 4px;
+  background: var(--tdk-color-surface);
+  color: var(--tdk-color-text);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+dialog h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+dialog input {
+  width: 100%;
+}
+
+.error {
+  margin: 0;
+  color: var(--app-error);
+}
+
+.error:empty,
+.hint:empty {
+  display: none;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dialog-actions .button {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      'chart'
+      'side'
+      'panel';
+  }
+
+  .market {
+    margin-left: 0;
+  }
+}
+
+.version {
+  align-self: center;
+}
+
+.version a {
+  color: var(--tdk-color-accent);
+}

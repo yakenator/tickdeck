@@ -1,0 +1,85 @@
+/*
+ * One flat token set for the story canvas, the chart and the widgets; the
+ * theme toolbar switches data-theme on <html>. The widgets also get the
+ * matching `theme` preset for the tokens not set here.
+ */
+:root {
+  --story-bg: #e9ecf0;
+  --tdk-color-surface: #ffffff;
+  --tdk-color-surface-2: #f3f5f7;
+  --tdk-color-text: #1b1f24;
+  --tdk-color-text-muted: #5b6470;
+  --tdk-color-border: #d4d8de;
+  --tdk-color-grid: #eef0f3;
+  --tdk-color-accent: #2f6fdf;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --story-bg: #0d1013;
+  --tdk-color-surface: #15191e;
+  --tdk-color-surface-2: #1f252c;
+  --tdk-color-text: #e6e9ed;
+  --tdk-color-text-muted: #9aa4af;
+  --tdk-color-border: #343c46;
+  --tdk-color-grid: #20262d;
+  --tdk-color-accent: #5b94f0;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--story-bg);
+  color: var(--tdk-color-text);
+  font: 13px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.story-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.story-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 320px;
+}
+
+.story-wide {
+  max-width: 1100px;
+}
+
+playground-chart {
+  display: block;
+  height: 420px;
+  min-width: 0;
+  border: 1px solid var(--tdk-color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.story-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-areas:
+    'chart side'
+    'panel panel';
+  gap: 8px;
+  max-width: 1280px;
+}
+
+.story-screen playground-chart {
+  grid-area: chart;
+  height: 460px;
+}
+
+.story-screen .story-column {
+  grid-area: side;
+}
+
+.story-screen tdk-account-panel {
+  grid-area: panel;
+  min-width: 0;
+}

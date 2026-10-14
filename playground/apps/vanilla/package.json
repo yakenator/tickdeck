@@ -1,0 +1,26 @@
+{
+  "name": "playground-vanilla",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A full tickdeck trading screen with Web Components, installed from npm and bundled with Vite.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tickdeck/broker": "0.1.0-alpha.1",
+    "@tickdeck/chart": "0.1.0-alpha.1",
+    "@tickdeck/core": "0.1.0-alpha.1",
+    "@tickdeck/datafeed": "0.1.0-alpha.1",
+    "@tickdeck/elements": "0.1.0-alpha.1",
+    "@tickdeck/widgets-core": "0.1.0-alpha.1"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^8.3.4"
+  }
+}

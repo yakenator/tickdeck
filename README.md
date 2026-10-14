@@ -202,6 +202,17 @@ pnpm install
 pnpm dev:vanilla   # or dev:react, dev:vue
 ```
 
+## Playground
+
+[`playground/`](playground) holds consumer apps that install the published packages from npm at one pinned version, the way your project would: a CDN page with no build step, Web Components with Vite, React, Vue, headless Node with server-side rendering, and TypeScript checks under `bundler`, `nodenext` and `node16` resolution. A Storybook shows every element and the chart in deterministic states, and runs each story as an interaction and accessibility test. Each release is verified there end to end (install, build, type check, Node tests, Storybook tests and a browser run of the trading flow), and the results are recorded in [`playground/RESULTS.md`](playground/RESULTS.md). The built apps and Storybook are published at <https://yakenator.github.io/tickdeck/>.
+
+```sh
+cd playground
+npm ci
+npx playwright install chromium
+npm run verify
+```
+
 ## Roadmap
 
 | Phase | Status | Scope | Done when |

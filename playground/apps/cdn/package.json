@@ -1,0 +1,8 @@
+{
+  "name": "playground-cdn",
+  "version": "0.0.0",
+  "private": true,
+  "description": "tickdeck in a static HTML page from jsDelivr, with no install and no build step.",
+  "license": "Apache-2.0",
+  "type": "module"
+}
