@@ -234,10 +234,3 @@ const TdkNotificationsComponent = defineComponent({
 /** Toasts and a notification log (`<tdk-notifications>`). */
 export const TdkNotifications = TdkNotificationsComponent as WithElement<typeof TdkNotificationsComponent, TdkNotificationsElement>;
 
-export const TdkPlaceholder = defineComponent({
-  name: 'TdkPlaceholder',
-  props: { label: String },
-  setup(props, { slots }) {
-    return () => h('tdk-placeholder', { label: props.label }, slots.default?.());
-  },
-});

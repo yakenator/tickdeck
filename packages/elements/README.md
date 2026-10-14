@@ -190,6 +190,4 @@ Style internals from outside with `::part()`.
 
 `TdkWidgetElement` is the base class: it handles `controller`, `session`, `feed` and `theme`, owns created controllers and re-renders on state changes. `themeStyles` and `baseStyles` hold the token mapping and shared control styles.
 
-`tdk-placeholder` remains as a minimal element for packaging checks and will be removed.
-
 Part of [tickdeck](https://github.com/yakenator/tickdeck). Licensed under Apache-2.0.

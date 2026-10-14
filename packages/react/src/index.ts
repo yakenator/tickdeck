@@ -29,7 +29,6 @@ import {
   type ForwardRefExoticComponent,
   type HTMLAttributes,
   type PropsWithoutRef,
-  type ReactElement,
   type RefAttributes,
 } from 'react';
 import { version } from '../package.json';
@@ -164,7 +163,7 @@ export interface TdkOrderTicketProps extends TdkWidgetProps<TdkOrderTicketElemen
   onOrderError?: Handler<TdkOrderErrorDetail>;
 }
 
-/** Order entry (`<tdk-order-ticket>`). Use the ref's `amend(order)` to edit a working order. */
+/** Order entry (`<tdk-order-ticket>`). The ref's `amend(order)` edits a working order and `usePrice(price)` fills the price field. */
 export const TdkOrderTicket = createWrapper<TdkOrderTicketElement, TdkOrderTicketProps>({
   tag: 'tdk-order-ticket',
   displayName: 'TdkOrderTicket',
@@ -213,11 +212,3 @@ export const TdkNotifications = createWrapper<TdkNotificationsElement, TdkNotifi
     onDismiss: 'tdk-dismiss',
   },
 });
-
-export interface TdkPlaceholderProps extends HTMLAttributes<HTMLElement> {
-  label?: string;
-}
-
-export function TdkPlaceholder(props: TdkPlaceholderProps): ReactElement {
-  return createElement('tdk-placeholder', props);
-}
