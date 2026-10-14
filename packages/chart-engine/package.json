@@ -24,12 +24,17 @@
   ],
   "scripts": {
     "build": "tsup && node ../../scripts/copy-legal.mjs NOTICE",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=20"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.6",
+    "vitest": "^5.0.4"
   }
 }

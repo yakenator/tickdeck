@@ -1,10 +1,13 @@
 /**
+ * tickdeck
+ * Copyright 2026 yakenator
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
-
- * http://www.apache.org/licenses/LICENSE-2.0
-
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -12,21 +15,13 @@
  * limitations under the License.
  */
 
-/**
- * This file uses most of the logic of lightweight-charts/mouse-event-handler.ts(https://github.com/tradingview/lightweight-charts) for reference.
- * Makes some modifications to add some events.
- * The use of the source code of this file is also subject to the terms
- * and consitions of the license of "lightweight-charts" (Apache License V2, see
- * </licenses/LICENSE-lightweight-charts>).
- */
-
 import type Coordinate from './Coordinate'
-
 import type Nullable from './Nullable'
 
-import { isFF, isIOS } from './utils/platform'
-import { isValid } from './utils/typeChecks'
-
+/**
+ * Pointer position handed to chart callbacks. `x` and `y` are relative to the
+ * element the handler is attached to; `pageX` and `pageY` are document coordinates.
+ */
 export interface MouseTouchEvent extends Coordinate {
   pageX: number
   pageY: number
@@ -34,915 +29,548 @@ export interface MouseTouchEvent extends Coordinate {
   preventDefault?: () => void
 }
 
+/**
+ * Returns true when the event was consumed. `other` is the pinch scale relative to
+ * the start of the pinch for `pinchEvent`, the zoom amount for `mouseWheelVertEvent`
+ * (positive zooms in, about 1 per wheel notch) and the scroll distance in pixels for
+ * `mouseWheelHortEvent` (positive moves the content to the right).
+ */
 export type MouseTouchEventCallback = (event: MouseTouchEvent, other?: number) => boolean
 
 export interface EventHandler {
   pinchStartEvent?: MouseTouchEventCallback
   pinchEvent?: MouseTouchEventCallback
   pinchEndEvent?: MouseTouchEventCallback
-
   mouseWheelHortEvent?: MouseTouchEventCallback
   mouseWheelVertEvent?: MouseTouchEventCallback
-
   mouseClickEvent?: MouseTouchEventCallback
   mouseRightClickEvent?: MouseTouchEventCallback
   tapEvent?: MouseTouchEventCallback
-
   mouseDoubleClickEvent?: MouseTouchEventCallback
   doubleTapEvent?: MouseTouchEventCallback
-
   mouseDownEvent?: MouseTouchEventCallback
   touchStartEvent?: MouseTouchEventCallback
-
   mouseUpEvent?: MouseTouchEventCallback
   touchEndEvent?: MouseTouchEventCallback
   touchCancelEvent?: MouseTouchEventCallback
-
   mouseDownOutsideEvent?: MouseTouchEventCallback
-
   mouseEnterEvent?: MouseTouchEventCallback
   mouseLeaveEvent?: MouseTouchEventCallback
-
   mouseMoveEvent?: MouseTouchEventCallback
-
   pressedMouseMoveEvent?: MouseTouchEventCallback
   touchMoveEvent?: MouseTouchEventCallback
-
   longTapEvent?: MouseTouchEventCallback
 }
 
 export type EventName = keyof EventHandler
 
 export interface EventOptions {
+  /**
+   * Return true to hand a one-finger drag that is mostly vertical to the page instead
+   * of the chart. The page only scrolls if the element's CSS `touch-action` allows it.
+   */
   treatVertDragAsPageScroll: () => boolean
+  /** Same as `treatVertDragAsPageScroll`, for drags that are mostly horizontal. */
   treatHorzDragAsPageScroll: () => boolean
 }
 
-// we can use `const name = 500;` but with `const enum` this values will be inlined into code
-// so we do not need to have it as variables
-const Delay = {
-  ResetClick: 500,
-  LongTap: 500,
-  PreventFiresTouchEvents: 500
+/** A touch that lands closer than this (px) to the previous one counts as the same spot. */
+export const TOUCH_MIN_RADIUS = 12
+
+/** A mouse press turns into a drag once it travels more than this many pixels. */
+const DRAG_THRESHOLD = 3
+/** A finger may travel this far and still produce a tap or a long press. */
+const TAP_SLOP = 8
+const LONG_PRESS_DELAY = 500
+/** Maximum time from the end of one click (tap) to the start of the next one. */
+const DOUBLE_CLICK_INTERVAL = 400
+const DOUBLE_CLICK_SLOP = 6
+const DOUBLE_TAP_INTERVAL = 300
+const DOUBLE_TAP_SLOP = 24
+/** Context menus this soon after touch input come from a long press, not a mouse. */
+const TOUCH_CONTEXT_MENU_WINDOW = 800
+const WHEEL_LINE_HEIGHT = 32
+const WHEEL_NOTCH = 100
+const DOM_DELTA_LINE = 1
+const DOM_DELTA_PAGE = 2
+
+const TARGET_EVENTS = [
+  'pointerdown',
+  'pointermove',
+  'pointerup',
+  'pointercancel',
+  'pointerenter',
+  'pointerleave',
+  'lostpointercapture',
+  'contextmenu',
+  'wheel'
+] as const
+
+interface Point {
+  clientX: number
+  clientY: number
+  pageX: number
+  pageY: number
 }
 
-const ManhattanDistance = {
-  CancelClick: 5,
-  CancelTap: 5,
-  DoubleClick: 5,
-  DoubleTap: 30
+interface Release {
+  time: number
+  point: Point
 }
 
-const MouseEventButton = {
-  Left: 0,
-  Middle: 1,
-  Right: 2
+interface MousePress {
+  pointerId: number
+  origin: Point
+  startTime: number
+  dragging: boolean
+  clickable: boolean
 }
 
-export const TOUCH_MIN_RADIUS = 10
-
-type TimerId = ReturnType<typeof setTimeout>
-
-interface MouseTouchMoveWithDownInfo {
-  xOffset: number
-  yOffset: number
-  manhattanDistance: number
+interface Pinch {
+  ids: [number, number]
+  baseDistance: number
 }
 
-// TODO: get rid of a lot of boolean flags, probably we should replace it with some enum
+interface TouchSession {
+  primaryId: number
+  origin: Point
+  startTime: number
+  points: Map<number, Point>
+  timer: Nullable<ReturnType<typeof setTimeout>>
+  travelled: boolean
+  longPressed: boolean
+  pinch: Nullable<Pinch>
+  pinched: boolean
+  abandoned: boolean
+}
+
+function toPoint(source: Point): Point {
+  return { clientX: source.clientX, clientY: source.clientY, pageX: source.pageX, pageY: source.pageY }
+}
+
+function distance(a: Point, b: Point): number {
+  return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY)
+}
+
+function midpoint(a: Point, b: Point): Point {
+  return {
+    clientX: (a.clientX + b.clientX) / 2,
+    clientY: (a.clientY + b.clientY) / 2,
+    pageX: (a.pageX + b.pageX) / 2,
+    pageY: (a.pageY + b.pageY) / 2
+  }
+}
+
+function followsQuickly(previous: Nullable<Release>, time: number, point: Point, interval: number, slop: number): boolean {
+  return previous !== null && time - previous.time <= interval && distance(previous.point, point) <= slop
+}
+
+/**
+ * Translates Pointer Events and wheel events on `target` into the chart callbacks of
+ * `handler`.
+ *
+ * - Mouse and pen: hover moves, press, drag, release, click, double click and the
+ *   context menu (dispatched as a right click; the native menu is suppressed).
+ * - Touch: start, move, end and cancel of a one-finger gesture, tap, double tap,
+ *   long press, and pinch from the first two fingers.
+ * - Wheel: vertical deltas zoom, horizontal deltas (or Shift + wheel) scroll.
+ */
 export default class EventHandlerImp {
   private readonly _target: HTMLElement
   private readonly _handler: EventHandler
-
   private readonly _options: EventOptions
 
-  private _clickCount = 0
-  private _clickTimeoutId: Nullable<TimerId> = null
-  private _clickCoordinate: Coordinate = { x: Number.NEGATIVE_INFINITY, y: Number.POSITIVE_INFINITY }
+  private _mouse: Nullable<MousePress> = null
+  private _touch: Nullable<TouchSession> = null
+  private _lastClick: Nullable<Release> = null
+  private _lastTap: Nullable<Release> = null
+  private _lastTouchTime = Number.NEGATIVE_INFINITY
 
-  private _tapCount = 0
-  private _tapTimeoutId: Nullable<TimerId> = null
-  private _tapCoordinate: Coordinate = { x: Number.NEGATIVE_INFINITY, y: Number.POSITIVE_INFINITY }
-
-  private _longTapTimeoutId: Nullable<TimerId> = null
-  private _longTapActive = false
-
-  private _mouseMoveStartCoordinate: Nullable<Coordinate> = null
-
-  private _touchMoveStartCoordinate: Nullable<Coordinate> = null
-  private _touchMoveExceededManhattanDistance = false
-
-  private _cancelClick = false
-  private _cancelTap = false
-
-  private _unsubscribeOutsideMouseEvents: Nullable<() => void> = null
-  private _unsubscribeOutsideTouchEvents: Nullable<() => void> = null
-  private _unsubscribeMobileSafariEvents: Nullable<() => void> = null
-
-  private _unsubscribeMousemove: Nullable<() => void> = null
-
-  private _unsubscribeMouseWheel: Nullable<() => void> = null
-
-  private _unsubscribeContextMenu: Nullable<() => void> = null
-
-  private _unsubscribeRootMouseEvents: Nullable<() => void> = null
-  private _unsubscribeRootTouchEvents: Nullable<() => void> = null
-
-  private _startPinchMiddleCoordinate: Nullable<Coordinate> = null
-  private _startPinchDistance = 0
-  private _pinchPrevented = false
-  private _preventTouchDragProcess = false
-
-  private _mousePressed = false
-
-  private _lastTouchEventTimeStamp = 0
-
-  // for touchstart/touchmove/touchend events we handle only first touch
-  // i.e. we don't support several active touches at the same time (except pinch event)
-  private _activeTouchId: Nullable<number> = null
-
-  // accept all mouse leave events if it's not an iOS device
-  // see _mouseEnterHandler, _mouseMoveHandler, _mouseLeaveHandler
-  private _acceptMouseLeave = !isIOS()
+  private readonly _onDocumentPointerDown = (event: PointerEvent): void => {
+    if (!event.composedPath().includes(this._target)) {
+      this._emit('mouseDownOutsideEvent', event, event.pointerType === 'touch', event)
+    }
+  }
 
   constructor(target: HTMLElement, handler: EventHandler, options: EventOptions) {
     this._target = target
     this._handler = handler
     this._options = options
+    for (const type of TARGET_EVENTS) {
+      target.addEventListener(type, this, { passive: false })
+    }
+    if (handler.mouseDownOutsideEvent !== undefined) {
+      target.ownerDocument.addEventListener('pointerdown', this._onDocumentPointerDown, true)
+    }
+  }
 
-    this._init()
+  handleEvent(event: Event): void {
+    switch (event.type) {
+      case 'wheel': {
+        this._onWheel(event as WheelEvent)
+        break
+      }
+      case 'contextmenu': {
+        this._onContextMenu(event as MouseEvent)
+        break
+      }
+      default: {
+        const pointerEvent = event as PointerEvent
+        if (pointerEvent.pointerType === 'touch') {
+          this._onTouchPointer(pointerEvent)
+        } else {
+          this._onMousePointer(pointerEvent)
+        }
+      }
+    }
   }
 
   destroy(): void {
-    if (this._unsubscribeOutsideMouseEvents !== null) {
-      this._unsubscribeOutsideMouseEvents()
-      this._unsubscribeOutsideMouseEvents = null
+    for (const type of TARGET_EVENTS) {
+      this._target.removeEventListener(type, this)
     }
-
-    if (this._unsubscribeOutsideTouchEvents !== null) {
-      this._unsubscribeOutsideTouchEvents()
-      this._unsubscribeOutsideTouchEvents = null
+    this._target.ownerDocument.removeEventListener('pointerdown', this._onDocumentPointerDown, true)
+    if (this._mouse !== null) {
+      this._release(this._mouse.pointerId)
+      this._mouse = null
     }
-
-    if (this._unsubscribeMousemove !== null) {
-      this._unsubscribeMousemove()
-      this._unsubscribeMousemove = null
-    }
-
-    if (this._unsubscribeMouseWheel !== null) {
-      this._unsubscribeMouseWheel()
-      this._unsubscribeMouseWheel = null
-    }
-
-    if (this._unsubscribeContextMenu !== null) {
-      this._unsubscribeContextMenu()
-      this._unsubscribeContextMenu = null
-    }
-
-    if (this._unsubscribeRootMouseEvents !== null) {
-      this._unsubscribeRootMouseEvents()
-      this._unsubscribeRootMouseEvents = null
-    }
-
-    if (this._unsubscribeRootTouchEvents !== null) {
-      this._unsubscribeRootTouchEvents()
-      this._unsubscribeRootTouchEvents = null
-    }
-
-    if (this._unsubscribeMobileSafariEvents !== null) {
-      this._unsubscribeMobileSafariEvents()
-      this._unsubscribeMobileSafariEvents = null
-    }
-
-    this._clearLongTapTimeout()
-    this._resetClickTimeout()
-  }
-
-  private _mouseEnterHandler(enterEvent: MouseEvent): void {
-    this._unsubscribeMousemove?.()
-    this._unsubscribeMouseWheel?.()
-    this._unsubscribeContextMenu?.()
-
-    const boundMouseMoveHandler = this._mouseMoveHandler.bind(this)
-    this._unsubscribeMousemove = () => {
-      this._target.removeEventListener('mousemove', boundMouseMoveHandler)
-    }
-    this._target.addEventListener('mousemove', boundMouseMoveHandler)
-
-    const boundMouseWheel = this._mouseWheelHandler.bind(this)
-    this._unsubscribeMouseWheel = () => {
-      this._target.removeEventListener('wheel', boundMouseWheel)
-    }
-    this._target.addEventListener('wheel', boundMouseWheel, { passive: false })
-
-    const boundContextMenu = this._contextMenuHandler.bind(this)
-    this._unsubscribeContextMenu = () => {
-      this._target.removeEventListener('contextmenu', boundContextMenu)
-    }
-    this._target.addEventListener('contextmenu', boundContextMenu, { passive: false })
-
-    if (this._firesTouchEvents(enterEvent)) {
-      return
-    }
-
-    this._processEvent(this._makeCompatEvent(enterEvent), this._handler.mouseEnterEvent)
-    this._acceptMouseLeave = true
-  }
-
-  private _resetClickTimeout(): void {
-    if (this._clickTimeoutId !== null) {
-      clearTimeout(this._clickTimeoutId)
-    }
-
-    this._clickCount = 0
-    this._clickTimeoutId = null
-    this._clickCoordinate = { x: Number.NEGATIVE_INFINITY, y: Number.POSITIVE_INFINITY }
-  }
-
-  private _resetTapTimeout(): void {
-    if (this._tapTimeoutId !== null) {
-      clearTimeout(this._tapTimeoutId)
-    }
-
-    this._tapCount = 0
-    this._tapTimeoutId = null
-    this._tapCoordinate = { x: Number.NEGATIVE_INFINITY, y: Number.POSITIVE_INFINITY }
-  }
-
-  private _mouseMoveHandler(moveEvent: MouseEvent): void {
-    if (this._mousePressed || this._touchMoveStartCoordinate !== null) {
-      return
-    }
-
-    if (this._firesTouchEvents(moveEvent)) {
-      return
-    }
-
-    this._processEvent(this._makeCompatEvent(moveEvent), this._handler.mouseMoveEvent)
-    this._acceptMouseLeave = true
-  }
-
-  private _mouseWheelHandler(wheelEvent: WheelEvent): void {
-    if (Math.abs(wheelEvent.deltaX) > Math.abs(wheelEvent.deltaY)) {
-      if (!isValid(this._handler.mouseWheelHortEvent)) {
-        return
+    if (this._touch !== null) {
+      this._stopLongPress(this._touch)
+      for (const id of this._touch.points.keys()) {
+        this._release(id)
       }
-      this._preventDefault(wheelEvent)
-      if (Math.abs(wheelEvent.deltaX) === 0) {
-        return
-      }
-      this._handler.mouseWheelHortEvent(this._makeCompatEvent(wheelEvent), -wheelEvent.deltaX)
-    } else {
-      if (!isValid(this._handler.mouseWheelVertEvent)) {
-        return
-      }
-      let deltaY = -(wheelEvent.deltaY / 100)
-      if (deltaY === 0) {
-        return
-      }
-      this._preventDefault(wheelEvent)
-
-      switch (wheelEvent.deltaMode) {
-        case wheelEvent.DOM_DELTA_PAGE: {
-          deltaY *= 120
-          break
-        }
-
-        case wheelEvent.DOM_DELTA_LINE: {
-          deltaY *= 32
-          break
-        }
-      }
-
-      if (deltaY !== 0) {
-        const scale = Math.sign(deltaY) * Math.min(1, Math.abs(deltaY))
-        this._handler.mouseWheelVertEvent(this._makeCompatEvent(wheelEvent), scale)
-      }
+      this._touch = null
     }
   }
 
-  private _contextMenuHandler(mouseEvent: MouseEvent): void {
-    this._preventDefault(mouseEvent)
-  }
-
-  private _touchMoveHandler(moveEvent: TouchEvent): void {
-    const touch = this._touchWithId(moveEvent.changedTouches, this._activeTouchId)
-    if (touch === null) {
-      return
-    }
-
-    this._lastTouchEventTimeStamp = this._eventTimeStamp(moveEvent)
-
-    if (this._startPinchMiddleCoordinate !== null) {
-      return
-    }
-
-    if (this._preventTouchDragProcess) {
-      return
-    }
-
-    // prevent pinch if move event comes faster than the second touch
-    this._pinchPrevented = true
-
-    const moveInfo = this._mouseTouchMoveWithDownInfo(this._getCoordinate(touch), this._touchMoveStartCoordinate!)
-    const { xOffset, yOffset, manhattanDistance } = moveInfo
-
-    if (!this._touchMoveExceededManhattanDistance && manhattanDistance < ManhattanDistance.CancelTap) {
-      return
-    }
-
-    if (!this._touchMoveExceededManhattanDistance) {
-      // first time when current position exceeded manhattan distance
-
-      // vertical drag is more important than horizontal drag
-      // because we scroll the page vertically often than horizontally
-      const correctedXOffset = xOffset * 0.5
-
-      // a drag can be only if touch page scroll isn't allowed
-      const isVertDrag = yOffset >= correctedXOffset && !this._options.treatVertDragAsPageScroll()
-      const isHorzDrag = correctedXOffset > yOffset && !this._options.treatHorzDragAsPageScroll()
-
-      // if drag event happened then we should revert preventDefault state to original one
-      // and try to process the drag event
-      // else we shouldn't prevent default of the event and ignore processing the drag event
-      if (!isVertDrag && !isHorzDrag) {
-        this._preventTouchDragProcess = true
-      }
-
-      this._touchMoveExceededManhattanDistance = true
-      // if manhattan distance is more that 5 - we should cancel tap event
-      this._cancelTap = true
-      this._clearLongTapTimeout()
-      this._resetTapTimeout()
-    }
-
-    if (!this._preventTouchDragProcess) {
-      this._processEvent(this._makeCompatEvent(moveEvent, touch), this._handler.touchMoveEvent)
-
-      // Prevent the browser from handling a drag that has been claimed by the chart.
-      // This avoids page scrolling and navigation gestures while panning the chart.
-      this._preventDefault(moveEvent)
-    }
-  }
-
-  private _mouseMoveWithDownHandler(moveEvent: MouseEvent): void {
-    if (moveEvent.button !== MouseEventButton.Left) {
-      return
-    }
-
-    const moveInfo = this._mouseTouchMoveWithDownInfo(this._getCoordinate(moveEvent), this._mouseMoveStartCoordinate!)
-    const { manhattanDistance } = moveInfo
-
-    if (manhattanDistance >= ManhattanDistance.CancelClick) {
-      // if manhattan distance is more that 5 - we should cancel click event
-      this._cancelClick = true
-      this._resetClickTimeout()
-    }
-    if (this._cancelClick) {
-      // if this._cancelClick is true, that means that minimum manhattan distance is already exceeded
-      this._processEvent(this._makeCompatEvent(moveEvent), this._handler.pressedMouseMoveEvent)
-    }
-  }
-
-  private _mouseTouchMoveWithDownInfo(currentCoordinate: Coordinate, startCoordinate: Coordinate): MouseTouchMoveWithDownInfo {
-    const xOffset = Math.abs(startCoordinate.x - currentCoordinate.x)
-    const yOffset = Math.abs(startCoordinate.y - currentCoordinate.y)
-
-    const manhattanDistance = xOffset + yOffset
-
-    return { xOffset, yOffset, manhattanDistance }
-  }
-
-  /**
-   * In Firefox mouse events dont't fire if the mouse position is outside of the browser's border.
-   * To prevent the mouse from hanging while pressed we're subscribing on the mouseleave event of the document element.
-   * We're subscribing on mouseleave, but this event is actually fired on mouseup outside of the browser's border.
-   */
-  private readonly _onFirefoxOutsideMouseUp = (mouseUpEvent: MouseEvent): void => {
-    this._mouseUpHandler(mouseUpEvent)
-  }
-
-  /**
-   * Safari doesn't fire touchstart/mousedown events on double tap since iOS 13.
-   * There are two possible solutions:
-   * 1) Call preventDefault in touchEnd handler. But it also prevents click event from firing.
-   * 2) Add listener on dblclick event that fires with the preceding mousedown/mouseup.
-   * https://developer.apple.com/forums/thread/125073
-   */
-  private readonly _onMobileSafariDoubleClick = (dblClickEvent: MouseEvent): void => {
-    if (this._firesTouchEvents(dblClickEvent)) {
-      ++this._tapCount
-
-      if (this._tapTimeoutId !== null && this._tapCount > 1) {
-        const { manhattanDistance } = this._mouseTouchMoveWithDownInfo(this._getCoordinate(dblClickEvent), this._tapCoordinate)
-
-        if (manhattanDistance < ManhattanDistance.DoubleTap && !this._cancelTap) {
-          this._processEvent(this._makeCompatEvent(dblClickEvent), this._handler.doubleTapEvent)
-        }
-        this._resetTapTimeout()
-      }
-    } else {
-      ++this._clickCount
-
-      if (this._clickTimeoutId !== null && this._clickCount > 1) {
-        const { manhattanDistance } = this._mouseTouchMoveWithDownInfo(this._getCoordinate(dblClickEvent), this._clickCoordinate)
-
-        if (manhattanDistance < ManhattanDistance.DoubleClick && !this._cancelClick) {
-          this._processEvent(this._makeCompatEvent(dblClickEvent), this._handler.mouseDoubleClickEvent)
-        }
-        this._resetClickTimeout()
-      }
-    }
-  }
-
-  private _touchEndHandler(touchEndEvent: TouchEvent): void {
-    let touch = this._touchWithId(touchEndEvent.changedTouches, this._activeTouchId)
-    if (touch === null && touchEndEvent.touches.length === 0) {
-      // something went wrong, somehow we missed the required touchend event
-      // probably the browser has not sent this event
-      touch = touchEndEvent.changedTouches[0]
-    }
-
-    if (touch === null) {
-      return
-    }
-
-    this._activeTouchId = null
-    this._lastTouchEventTimeStamp = this._eventTimeStamp(touchEndEvent)
-    this._clearLongTapTimeout()
-    this._touchMoveStartCoordinate = null
-
-    if (this._unsubscribeRootTouchEvents !== null) {
-      this._unsubscribeRootTouchEvents()
-      this._unsubscribeRootTouchEvents = null
-    }
-
-    const compatEvent = this._makeCompatEvent(touchEndEvent, touch)
-    this._processEvent(compatEvent, this._handler.touchEndEvent)
-    ++this._tapCount
-
-    if (this._tapTimeoutId !== null && this._tapCount > 1) {
-      // check that both clicks are near enough
-      const { manhattanDistance } = this._mouseTouchMoveWithDownInfo(this._getCoordinate(touch), this._tapCoordinate)
-      if (manhattanDistance < ManhattanDistance.DoubleTap && !this._cancelTap) {
-        this._processEvent(compatEvent, this._handler.doubleTapEvent)
-      }
-      this._resetTapTimeout()
-    } else {
-      if (!this._cancelTap) {
-        this._processEvent(compatEvent, this._handler.tapEvent)
-
-        // do not fire mouse events if tap handler was executed
-        // prevent click event on new dom element (who appeared after tap)
-        if (isValid(this._handler.tapEvent)) {
-          this._preventDefault(touchEndEvent)
-        }
-      }
-    }
-
-    // prevent, for example, safari's dblclick-to-zoom or fast-click after long-tap
-    // we handle mouseDoubleClickEvent here ourselves
-    if (this._tapCount === 0) {
-      this._preventDefault(touchEndEvent)
-    }
-
-    if (touchEndEvent.touches.length === 0) {
-      if (this._longTapActive) {
-        this._longTapActive = false
-        // prevent native click event
-        this._preventDefault(touchEndEvent)
-      }
-    }
-  }
-
-  private _touchCancelHandler(touchCancelEvent: TouchEvent): void {
-    const touch = this._touchWithId(touchCancelEvent.changedTouches, this._activeTouchId)
-    this._activeTouchId = null
-    this._lastTouchEventTimeStamp = this._eventTimeStamp(touchCancelEvent)
-    this._clearLongTapTimeout()
-    this._touchMoveStartCoordinate = null
-    // a cancelled gesture must not resolve into a tap
-    this._cancelTap = true
-    this._resetTapTimeout()
-
-    if (this._unsubscribeRootTouchEvents !== null) {
-      this._unsubscribeRootTouchEvents()
-      this._unsubscribeRootTouchEvents = null
-    }
-
-    if (touch !== null) {
-      this._processEvent(this._makeCompatEvent(touchCancelEvent, touch), this._handler.touchCancelEvent)
-    }
-  }
-
-  private _mouseUpHandler(mouseUpEvent: MouseEvent): void {
-    if (mouseUpEvent.button !== MouseEventButton.Left) {
-      return
-    }
-
-    const compatEvent = this._makeCompatEvent(mouseUpEvent)
-
-    this._mouseMoveStartCoordinate = null
-    this._mousePressed = false
-
-    if (this._unsubscribeRootMouseEvents !== null) {
-      this._unsubscribeRootMouseEvents()
-      this._unsubscribeRootMouseEvents = null
-    }
-
-    if (isFF()) {
-      const rootElement = this._target.ownerDocument.documentElement
-      rootElement.removeEventListener('mouseleave', this._onFirefoxOutsideMouseUp)
-    }
-
-    if (this._firesTouchEvents(mouseUpEvent)) {
-      return
-    }
-
-    this._processEvent(compatEvent, this._handler.mouseUpEvent)
-    ++this._clickCount
-
-    if (this._clickTimeoutId !== null && this._clickCount > 1) {
-      // check that both clicks are near enough
-      const { manhattanDistance } = this._mouseTouchMoveWithDownInfo(this._getCoordinate(mouseUpEvent), this._clickCoordinate)
-      if (manhattanDistance < ManhattanDistance.DoubleClick && !this._cancelClick) {
-        this._processEvent(compatEvent, this._handler.mouseDoubleClickEvent)
-      }
-      this._resetClickTimeout()
-    } else {
-      if (!this._cancelClick) {
-        this._processEvent(compatEvent, this._handler.mouseClickEvent)
-      }
-    }
-  }
-
-  private _clearLongTapTimeout(): void {
-    if (this._longTapTimeoutId === null) {
-      return
-    }
-
-    clearTimeout(this._longTapTimeoutId)
-    this._longTapTimeoutId = null
-  }
-
-  private _touchStartHandler(downEvent: TouchEvent): void {
-    if (this._activeTouchId !== null) {
-      return
-    }
-    const touch = downEvent.changedTouches[0]
-    this._activeTouchId = touch.identifier
-
-    this._lastTouchEventTimeStamp = this._eventTimeStamp(downEvent)
-
-    const rootElement = this._target.ownerDocument.documentElement
-
-    this._cancelTap = false
-    this._touchMoveExceededManhattanDistance = false
-    this._preventTouchDragProcess = false
-
-    this._touchMoveStartCoordinate = this._getCoordinate(touch)
-
-    if (this._unsubscribeRootTouchEvents !== null) {
-      this._unsubscribeRootTouchEvents()
-      this._unsubscribeRootTouchEvents = null
-    }
-
-    {
-      const boundTouchMoveWithDownHandler = this._touchMoveHandler.bind(this)
-      const boundTouchEndHandler = this._touchEndHandler.bind(this)
-      const boundTouchCancelHandler = this._touchCancelHandler.bind(this)
-
-      this._unsubscribeRootTouchEvents = () => {
-        rootElement.removeEventListener('touchmove', boundTouchMoveWithDownHandler)
-        rootElement.removeEventListener('touchend', boundTouchEndHandler)
-        rootElement.removeEventListener('touchcancel', boundTouchCancelHandler)
-      }
-
-      rootElement.addEventListener('touchmove', boundTouchMoveWithDownHandler, { passive: false })
-      rootElement.addEventListener('touchend', boundTouchEndHandler, { passive: false })
-      rootElement.addEventListener('touchcancel', boundTouchCancelHandler, { passive: false })
-
-      this._clearLongTapTimeout()
-      this._longTapTimeoutId = setTimeout(this._longTapHandler.bind(this, downEvent), Delay.LongTap)
-    }
-
-    this._processEvent(this._makeCompatEvent(downEvent, touch), this._handler.touchStartEvent)
-
-    // A tap outside the double tap distance starts its own sequence, as a mouse press does below.
-    if (this._tapTimeoutId !== null && this._mouseTouchMoveWithDownInfo(this._getCoordinate(touch), this._tapCoordinate).manhattanDistance >= ManhattanDistance.DoubleTap) {
-      this._resetTapTimeout()
-    }
-
-    if (this._tapTimeoutId === null) {
-      this._tapCount = 0
-      this._tapTimeoutId = setTimeout(this._resetTapTimeout.bind(this), Delay.ResetClick)
-      this._tapCoordinate = this._getCoordinate(touch)
-    }
-  }
-
-  private _mouseDownHandler(downEvent: MouseEvent): void {
-    if (downEvent.button === MouseEventButton.Right) {
-      this._preventDefault(downEvent)
-      this._processEvent(this._makeCompatEvent(downEvent), this._handler.mouseRightClickEvent)
-      return
-    }
-
-    if (downEvent.button !== MouseEventButton.Left) {
-      return
-    }
-
-    const rootElement = this._target.ownerDocument.documentElement
-    if (isFF()) {
-      rootElement.addEventListener('mouseleave', this._onFirefoxOutsideMouseUp)
-    }
-
-    this._cancelClick = false
-
-    this._mouseMoveStartCoordinate = this._getCoordinate(downEvent)
-
-    if (this._unsubscribeRootMouseEvents !== null) {
-      this._unsubscribeRootMouseEvents()
-      this._unsubscribeRootMouseEvents = null
-    }
-
-    {
-      const boundMouseMoveWithDownHandler = this._mouseMoveWithDownHandler.bind(this)
-      const boundMouseUpHandler = this._mouseUpHandler.bind(this)
-
-      this._unsubscribeRootMouseEvents = () => {
-        rootElement.removeEventListener('mousemove', boundMouseMoveWithDownHandler)
-        rootElement.removeEventListener('mouseup', boundMouseUpHandler)
-      }
-
-      rootElement.addEventListener('mousemove', boundMouseMoveWithDownHandler)
-      rootElement.addEventListener('mouseup', boundMouseUpHandler)
-    }
-
-    this._mousePressed = true
-
-    if (this._firesTouchEvents(downEvent)) {
-      return
-    }
-
-    this._processEvent(this._makeCompatEvent(downEvent), this._handler.mouseDownEvent)
-
-    // A press outside the double click distance starts its own sequence. Otherwise its release is
-    // classified against the earlier click and dropped as neither a click nor a double click.
-    if (this._clickTimeoutId !== null && this._mouseTouchMoveWithDownInfo(this._getCoordinate(downEvent), this._clickCoordinate).manhattanDistance >= ManhattanDistance.DoubleClick) {
-      this._resetClickTimeout()
-    }
-
-    if (this._clickTimeoutId === null) {
-      this._clickCount = 0
-      this._clickTimeoutId = setTimeout(this._resetClickTimeout.bind(this), Delay.ResetClick)
-      this._clickCoordinate = this._getCoordinate(downEvent)
-    }
-  }
-
-  private _init(): void {
-    this._target.addEventListener('mouseenter', this._mouseEnterHandler.bind(this))
-
-    // Do not show context menu when something went wrong
-    this._target.addEventListener('touchcancel', this._clearLongTapTimeout.bind(this))
-
-    {
-      const doc = this._target.ownerDocument
-
-      const outsideHandler = (event: MouseEvent | TouchEvent): void => {
-        if (this._handler.mouseDownOutsideEvent == null) {
+  private _onMousePointer(event: PointerEvent): void {
+    const press = this._mouse
+    switch (event.type) {
+      case 'pointerdown': {
+        if (event.button !== 0 || press !== null) {
           return
         }
-
-        if (event.composed && this._target.contains(event.composedPath()[0] as Element)) {
+        this._capture(event.pointerId)
+        this._mouse = { pointerId: event.pointerId, origin: toPoint(event), startTime: performance.now(), dragging: false, clickable: true }
+        this._emit('mouseDownEvent', event, false, event)
+        break
+      }
+      case 'pointermove': {
+        if (press === null) {
+          this._emit('mouseMoveEvent', event, false, event)
           return
         }
-
-        if (event.target !== null && this._target.contains(event.target as Element)) {
+        if (press.pointerId !== event.pointerId) {
           return
         }
-
-        this._handler.mouseDownOutsideEvent({ x: 0, y: 0, pageX: 0, pageY: 0 })
+        if (!press.dragging && distance(press.origin, event) > DRAG_THRESHOLD) {
+          press.dragging = true
+          press.clickable = false
+        }
+        if (press.dragging) {
+          this._emit('pressedMouseMoveEvent', event, false, event)
+        }
+        break
       }
-
-      this._unsubscribeOutsideTouchEvents = () => {
-        doc.removeEventListener('touchstart', outsideHandler)
+      case 'pointerup': {
+        if (press?.pointerId === event.pointerId) {
+          this._finishMousePress(press, event, false)
+        }
+        break
       }
-
-      this._unsubscribeOutsideMouseEvents = () => {
-        doc.removeEventListener('mousedown', outsideHandler)
+      case 'pointercancel':
+      case 'lostpointercapture': {
+        if (press?.pointerId === event.pointerId) {
+          this._finishMousePress(press, event, true)
+        }
+        break
       }
-
-      doc.addEventListener('mousedown', outsideHandler)
-      doc.addEventListener('touchstart', outsideHandler, { passive: true })
+      case 'pointerenter': {
+        this._emit('mouseEnterEvent', event, false, event)
+        break
+      }
+      case 'pointerleave': {
+        // Without pointer capture the release would happen outside and never reach us.
+        if (press !== null && !this._hasCapture(press.pointerId)) {
+          this._finishMousePress(press, event, true)
+        }
+        this._emit('mouseLeaveEvent', event, false, event)
+        break
+      }
     }
-
-    if (isIOS()) {
-      this._unsubscribeMobileSafariEvents = () => {
-        this._target.removeEventListener('dblclick', this._onMobileSafariDoubleClick)
-      }
-      this._target.addEventListener('dblclick', this._onMobileSafariDoubleClick)
-    }
-
-    this._target.addEventListener('mouseleave', this._mouseLeaveHandler.bind(this))
-
-    this._target.addEventListener('touchstart', this._touchStartHandler.bind(this), { passive: true })
-
-    this._target.addEventListener('mousedown', (e: MouseEvent) => {
-      if (e.button === MouseEventButton.Middle) {
-        // prevent incorrect scrolling event
-        e.preventDefault()
-        return false
-      }
-      return undefined
-    })
-
-    this._target.addEventListener('mousedown', this._mouseDownHandler.bind(this))
-    this._initPinch()
-
-    // Hey mobile Safari, what's up?
-    // If mobile Safari doesn't have any touchmove handler with passive=false
-    // it treats a touchstart and the following touchmove events as cancelable=false,
-    // so we can't prevent them (as soon we subscribe on touchmove inside touchstart's handler).
-    // And we'll get scroll of the page along with chart's one instead of only chart's scroll.
-    // biome-ignore lint/suspicious/noEmptyBlockStatements: Safari requires an empty non-passive handler.
-    this._target.addEventListener('touchmove', () => {}, { passive: false })
   }
 
-  private _initPinch(): void {
-    if (!isValid(this._handler.pinchStartEvent) && !isValid(this._handler.pinchEvent) && !isValid(this._handler.pinchEndEvent)) {
+  private _finishMousePress(press: MousePress, event: PointerEvent, cancelled: boolean): void {
+    this._mouse = null
+    this._emit('mouseUpEvent', event, false, event)
+    if (cancelled || !press.clickable) {
       return
     }
-
-    this._target.addEventListener(
-      'touchstart',
-      (event: TouchEvent) => {
-        this._checkPinchState(event.touches)
-      },
-      { passive: true }
-    )
-
-    this._target.addEventListener(
-      'touchmove',
-      (event: TouchEvent) => {
-        if (event.touches.length !== 2 || this._startPinchMiddleCoordinate === null) {
-          return
-        }
-        if (isValid(this._handler.pinchEvent)) {
-          const currentDistance = this._getTouchDistance(event.touches[0], event.touches[1])
-          const scale = currentDistance / this._startPinchDistance
-          this._handler.pinchEvent({ ...this._startPinchMiddleCoordinate, pageX: 0, pageY: 0 }, scale)
-          this._preventDefault(event)
-        }
-      },
-      { passive: false }
-    )
-
-    this._target.addEventListener('touchend', (event: TouchEvent) => {
-      this._checkPinchState(event.touches)
-    })
-  }
-
-  private _checkPinchState(touches: TouchList): void {
-    if (touches.length === 1) {
-      this._pinchPrevented = false
-    }
-
-    if (touches.length !== 2 || this._pinchPrevented || this._longTapActive) {
-      this._stopPinch()
+    this._emit('mouseClickEvent', event, false, event)
+    const point = toPoint(event)
+    if (followsQuickly(this._lastClick, press.startTime, press.origin, DOUBLE_CLICK_INTERVAL, DOUBLE_CLICK_SLOP)) {
+      this._lastClick = null
+      this._emit('mouseDoubleClickEvent', point, false, event)
     } else {
-      this._startPinch(touches)
+      this._lastClick = { time: performance.now(), point }
     }
   }
 
-  private _startPinch(touches: TouchList): void {
-    const box = this._target.getBoundingClientRect()
-    this._startPinchMiddleCoordinate = {
-      x: (touches[0].clientX - box.left + (touches[1].clientX - box.left)) / 2,
-      y: (touches[0].clientY - box.top + (touches[1].clientY - box.top)) / 2
-    }
-
-    this._startPinchDistance = this._getTouchDistance(touches[0], touches[1])
-
-    if (isValid(this._handler.pinchStartEvent)) {
-      this._handler.pinchStartEvent({ x: 0, y: 0, pageX: 0, pageY: 0 })
-    }
-
-    this._clearLongTapTimeout()
-  }
-
-  private _stopPinch(): void {
-    if (this._startPinchMiddleCoordinate === null) {
-      return
-    }
-
-    this._startPinchMiddleCoordinate = null
-
-    if (isValid(this._handler.pinchEndEvent)) {
-      this._handler.pinchEndEvent({ x: 0, y: 0, pageX: 0, pageY: 0 })
-    }
-  }
-
-  private _mouseLeaveHandler(event: MouseEvent): void {
-    this._unsubscribeMousemove?.()
-    this._unsubscribeMouseWheel?.()
-    this._unsubscribeContextMenu?.()
-
-    if (this._firesTouchEvents(event)) {
-      return
-    }
-
-    if (!this._acceptMouseLeave) {
-      // mobile Safari sometimes emits mouse leave event for no reason, there is no way to handle it in other way
-      // just ignore this event if there was no mouse move or mouse enter events
-      return
-    }
-
-    this._processEvent(this._makeCompatEvent(event), this._handler.mouseLeaveEvent)
-
-    // accept all mouse leave events if it's not an iOS device
-    this._acceptMouseLeave = !isIOS()
-  }
-
-  private _longTapHandler(event: TouchEvent): void {
-    const touch = this._touchWithId(event.touches, this._activeTouchId)
-    if (touch === null) {
-      return
-    }
-
-    this._processEvent(this._makeCompatEvent(event, touch), this._handler.longTapEvent)
-    this._cancelTap = true
-
-    // long tap is active until touchend event with 0 touches occurred
-    this._longTapActive = true
-  }
-
-  private _firesTouchEvents(e: MouseEvent): boolean {
-    // @ts-ignore
-    if (isValid(e.sourceCapabilities?.firesTouchEvents)) {
-      // @ts-ignore
-      return e.sourceCapabilities.firesTouchEvents
-    }
-
-    return this._eventTimeStamp(e) < this._lastTouchEventTimeStamp + Delay.PreventFiresTouchEvents
-  }
-
-  private _processEvent(event: MouseTouchEvent, callback?: MouseTouchEventCallback): void {
-    callback?.call(this._handler, event)
-  }
-
-  private _makeCompatEvent(event: MouseEvent | TouchEvent, touch?: Touch): MouseTouchEvent {
-    // TouchEvent has no clientX/Y coordinates:
-    // We have to use the last Touch instead
-    const eventLike = touch ?? (event as MouseEvent)
-    const box = this._target.getBoundingClientRect()
-    return {
-      x: eventLike.clientX - box.left,
-      y: eventLike.clientY - box.top,
-
-      pageX: eventLike.pageX,
-      pageY: eventLike.pageY,
-      isTouch: !event.type.startsWith('mouse') && event.type !== 'contextmenu' && event.type !== 'click' && event.type !== 'wheel',
-
-      preventDefault: () => {
-        if (event.type !== 'touchstart') {
-          // touchstart is passive and cannot be prevented
-          this._preventDefault(event)
-        }
+  private _onTouchPointer(event: PointerEvent): void {
+    this._lastTouchTime = performance.now()
+    switch (event.type) {
+      case 'pointerdown': {
+        this._touchDown(event)
+        break
+      }
+      case 'pointermove': {
+        this._touchMove(event)
+        break
+      }
+      case 'pointerup': {
+        this._touchUp(event, false)
+        break
+      }
+      case 'pointercancel':
+      case 'lostpointercapture': {
+        this._touchUp(event, true)
+        break
       }
     }
   }
 
-  private _getTouchDistance(p1: Touch, p2: Touch): number {
-    const xDiff = p1.clientX - p2.clientX
-    const yDiff = p1.clientY - p2.clientY
-    return Math.sqrt(xDiff * xDiff + yDiff * yDiff)
+  private _touchDown(event: PointerEvent): void {
+    const point = toPoint(event)
+    const session = this._touch
+    if (session === null) {
+      const started: TouchSession = {
+        primaryId: event.pointerId,
+        origin: point,
+        startTime: performance.now(),
+        points: new Map([[event.pointerId, point]]),
+        timer: null,
+        travelled: false,
+        longPressed: false,
+        pinch: null,
+        pinched: false,
+        abandoned: false
+      }
+      started.timer = setTimeout(() => {
+        this._onLongPress(started)
+      }, LONG_PRESS_DELAY)
+      this._touch = started
+      this._capture(event.pointerId)
+      this._emit('touchStartEvent', point, true, event)
+      return
+    }
+    session.points.set(event.pointerId, point)
+    this._capture(event.pointerId)
+    if (session.abandoned || session.pinch !== null || session.points.size !== 2) {
+      return
+    }
+    this._stopLongPress(session)
+    const [first, second] = [...session.points.keys()]
+    const a = session.points.get(first)!
+    const b = session.points.get(second)!
+    session.pinch = { ids: [first, second], baseDistance: distance(a, b) }
+    session.pinched = true
+    this._emit('pinchStartEvent', midpoint(a, b), true, event)
   }
 
-  private _preventDefault(event: Event): void {
-    if (event.cancelable) {
+  private _touchMove(event: PointerEvent): void {
+    const session = this._touch
+    if (session === null || !session.points.has(event.pointerId)) {
+      return
+    }
+    const point = toPoint(event)
+    session.points.set(event.pointerId, point)
+    if (session.abandoned) {
+      return
+    }
+    const pinch = session.pinch
+    if (pinch !== null) {
+      if (pinch.ids.includes(event.pointerId)) {
+        const a = session.points.get(pinch.ids[0])!
+        const b = session.points.get(pinch.ids[1])!
+        const span = distance(a, b)
+        if (pinch.baseDistance > 0) {
+          this._emit('pinchEvent', midpoint(a, b), true, event, span / pinch.baseDistance)
+        } else {
+          pinch.baseDistance = span
+        }
+      }
+      return
+    }
+    if (session.pinched || event.pointerId !== session.primaryId) {
+      return
+    }
+    if (!session.travelled && !session.longPressed) {
+      const dx = point.clientX - session.origin.clientX
+      const dy = point.clientY - session.origin.clientY
+      if (Math.hypot(dx, dy) <= TAP_SLOP) {
+        return
+      }
+      session.travelled = true
+      this._stopLongPress(session)
+      const handToPage = Math.abs(dx) > Math.abs(dy) ? this._options.treatHorzDragAsPageScroll() : this._options.treatVertDragAsPageScroll()
+      if (handToPage) {
+        session.abandoned = true
+        this._emit('touchCancelEvent', point, true, event)
+        return
+      }
+    }
+    session.travelled = true
+    this._emit('touchMoveEvent', point, true, event)
+  }
+
+  private _touchUp(event: PointerEvent, cancelled: boolean): void {
+    const session = this._touch
+    if (session === null || !session.points.has(event.pointerId)) {
+      return
+    }
+    const point = toPoint(event)
+    session.points.delete(event.pointerId)
+    const pinch = session.pinch
+    if (pinch !== null && pinch.ids.includes(event.pointerId)) {
+      const partnerId = pinch.ids[0] === event.pointerId ? pinch.ids[1] : pinch.ids[0]
+      session.pinch = null
+      this._emit('pinchEndEvent', midpoint(point, session.points.get(partnerId) ?? point), true, event)
+    }
+    if (cancelled && !session.abandoned) {
+      session.abandoned = true
+      this._stopLongPress(session)
+      this._emit('touchCancelEvent', point, true, event)
+    }
+    if (session.points.size > 0) {
+      return
+    }
+    this._stopLongPress(session)
+    if (this._touch === session) {
+      this._touch = null
+    }
+    if (session.abandoned) {
+      return
+    }
+    this._emit('touchEndEvent', point, true, event)
+    if (session.travelled || session.longPressed || session.pinched) {
+      return
+    }
+    this._emit('tapEvent', point, true, event)
+    if (followsQuickly(this._lastTap, session.startTime, session.origin, DOUBLE_TAP_INTERVAL, DOUBLE_TAP_SLOP)) {
+      this._lastTap = null
+      this._emit('doubleTapEvent', point, true, event)
+    } else {
+      this._lastTap = { time: performance.now(), point }
+    }
+  }
+
+  private _onLongPress(session: TouchSession): void {
+    session.timer = null
+    if (this._touch !== session || session.travelled || session.pinched || session.abandoned || session.points.size !== 1) {
+      return
+    }
+    const point = session.points.get(session.primaryId)
+    if (point !== undefined) {
+      session.longPressed = true
+      this._emit('longTapEvent', point, true, null)
+    }
+  }
+
+  private _stopLongPress(session: TouchSession): void {
+    if (session.timer !== null) {
+      clearTimeout(session.timer)
+      session.timer = null
+    }
+  }
+
+  private _onContextMenu(event: MouseEvent): void {
+    event.preventDefault()
+    const fromTouch = (event as Partial<PointerEvent>).pointerType === 'touch' || this._touch !== null || performance.now() - this._lastTouchTime < TOUCH_CONTEXT_MENU_WINDOW
+    if (fromTouch) {
+      return
+    }
+    // Ctrl + click on macOS opens the menu in the middle of a primary press.
+    if (this._mouse !== null) {
+      this._mouse.clickable = false
+    }
+    this._emit('mouseRightClickEvent', event, false, event)
+  }
+
+  private _onWheel(event: WheelEvent): void {
+    let { deltaX, deltaY } = event
+    if (event.deltaMode === DOM_DELTA_LINE) {
+      deltaX *= WHEEL_LINE_HEIGHT
+      deltaY *= WHEEL_LINE_HEIGHT
+    } else if (event.deltaMode === DOM_DELTA_PAGE) {
+      deltaX *= this._target.clientWidth
+      deltaY *= this._target.clientHeight
+    }
+    if (event.shiftKey && deltaX === 0) {
+      deltaX = deltaY
+      deltaY = 0
+    }
+    if (deltaX === 0 && deltaY === 0) {
+      return
+    }
+    const consumed = Math.abs(deltaX) > Math.abs(deltaY)
+      ? this._emit('mouseWheelHortEvent', event, false, event, -deltaX)
+      : this._emit('mouseWheelVertEvent', event, false, event, -deltaY / WHEEL_NOTCH)
+    if (consumed && event.cancelable) {
       event.preventDefault()
     }
   }
 
-  private _getCoordinate(eventLike: Touch | MouseEvent): Coordinate {
-    return {
-      x: eventLike.pageX,
-      y: eventLike.pageY
+  private _emit(name: EventName, point: Point, isTouch: boolean, source: Nullable<Event>, other?: number): boolean {
+    const callback = this._handler[name]
+    if (callback === undefined) {
+      return false
     }
+    return callback.call(this._handler, this._toChartEvent(point, isTouch, source), other)
   }
 
-  private _eventTimeStamp(e: TouchEvent | MouseEvent): number {
-    // for some reason e.timestamp is always 0 on iPad with magic mouse, so we use performance.now() as a fallback
-    return e.timeStamp ?? performance.now()
-  }
-
-  private _touchWithId(touches: TouchList, id: Nullable<number>): Nullable<Touch> {
-    // biome-ignore lint/style/useForOf: TouchList does not implement the iterable protocol in every target browser.
-    for (let i = 0; i < touches.length; ++i) {
-      if (touches[i].identifier === id) {
-        return touches[i]
+  private _toChartEvent(point: Point, isTouch: boolean, source: Nullable<Event>): MouseTouchEvent {
+    const target = this._target
+    const rect = target.getBoundingClientRect()
+    // getBoundingClientRect includes CSS transforms; x and y are in untransformed pixels.
+    const scaleX = target.offsetWidth > 0 && rect.width > 0 ? rect.width / target.offsetWidth : 1
+    const scaleY = target.offsetHeight > 0 && rect.height > 0 ? rect.height / target.offsetHeight : 1
+    return {
+      x: (point.clientX - rect.left) / scaleX - target.clientLeft,
+      y: (point.clientY - rect.top) / scaleY - target.clientTop,
+      pageX: point.pageX,
+      pageY: point.pageY,
+      isTouch,
+      preventDefault: () => {
+        if (source?.cancelable === true) {
+          source.preventDefault()
+        }
       }
     }
-    return null
+  }
+
+  private _capture(pointerId: number): void {
+    try {
+      this._target.setPointerCapture(pointerId)
+    } catch {
+      // The pointer is no longer active (or the environment lacks pointer capture).
+    }
+  }
+
+  private _release(pointerId: number): void {
+    try {
+      if (this._target.hasPointerCapture(pointerId)) {
+        this._target.releasePointerCapture(pointerId)
+      }
+    } catch {
+      // Same as _capture.
+    }
+  }
+
+  private _hasCapture(pointerId: number): boolean {
+    try {
+      return this._target.hasPointerCapture(pointerId)
+    } catch {
+      return false
+    }
   }
 }
