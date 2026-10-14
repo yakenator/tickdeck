@@ -1,7 +1,7 @@
 {
   "name": "@tickdeck/chart",
   "version": "0.0.0",
-  "description": "Chart model, series styles and price scales for tickdeck.",
+  "description": "Chart view with series styles, price scales, history paging and a trading overlay for tickdeck.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -23,11 +23,18 @@
   ],
   "scripts": {
     "build": "tsup && node ../../scripts/copy-legal.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@tickdeck/broker": "workspace:*",
     "@tickdeck/chart-engine": "workspace:*",
-    "@tickdeck/core": "workspace:*"
+    "@tickdeck/core": "workspace:*",
+    "@tickdeck/datafeed": "workspace:*"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.6",
+    "vitest": "^5.0.4"
   },
   "engines": {
     "node": ">=20"

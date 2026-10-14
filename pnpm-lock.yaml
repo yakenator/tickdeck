@@ -66,12 +66,25 @@ importers:
 
   packages/chart:
     dependencies:
+      '@tickdeck/broker':
+        specifier: workspace:*
+        version: link:../broker
       '@tickdeck/chart-engine':
         specifier: workspace:*
         version: link:../chart-engine
       '@tickdeck/core':
         specifier: workspace:*
         version: link:../core
+      '@tickdeck/datafeed':
+        specifier: workspace:*
+        version: link:../datafeed
+    devDependencies:
+      happy-dom:
+        specifier: ^20.14.6
+        version: 20.14.6
+      vitest:
+        specifier: ^5.0.4
+        version: 5.0.4(@types/node@26.6.5)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.27.7)(yaml@2.9.1))
 
   packages/chart-engine:
     devDependencies:
