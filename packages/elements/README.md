@@ -68,7 +68,9 @@ Instrument, live bid and ask (click one to use it as the price), side, order typ
 | `exitMode` | `exit-mode` | How exits are entered at first: `price` or `ticks` |
 | `instruments` | | Instruments for a picker: ids, or `{ id, name }` objects |
 
-Methods: `amend(order)`, `submit()`, `reset()`.
+Methods: `amend(order)`, `usePrice(price)` (fills the limit price, or the stop price of a stop or stop-limit order, for example from a chart click), `submit()`, `reset()`.
+
+Setting `instrument` to the instrument the ticket already shows, for example right before or after `amend(order)` for an order on another instrument, keeps amend mode.
 
 Keyboard: Tab through the fields; arrow keys move within the side, order type and exit entry groups; ArrowUp and ArrowDown in a quantity or price field step by one quantity step or one tick; Enter submits.
 

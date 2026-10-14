@@ -157,6 +157,41 @@ describe('<tdk-order-ticket>', () => {
     expect(shadow(ticket).querySelector('[part="mode"]')).toBeNull();
   });
 
+  it('stays in amend mode when the application switches the instrument just before amending', async () => {
+    const { ticket, session, settle, quote } = await mount();
+    await quote(4800, 4800.25, 'MOCK:ES');
+    const orderId = await session.submitOrder({ instrument: 'MOCK:ES', side: 'buy', kind: 'limit', quantity: 1, limitPrice: 4790 });
+    await settle();
+
+    // What an app does on `tdk-amend` for an order on another instrument: follow it, then open the order.
+    ticket.instrument = 'MOCK:ES';
+    await ticket.amend(session.getOrder(orderId)!);
+    await rendered(ticket);
+    expect(ticket.activeController!.state.value).toMatchObject({ mode: 'amend', instrumentId: 'MOCK:ES' });
+    expect(text(query(ticket, '[part="mode"]'))).toBe(`Changing ${orderId}`);
+    expect(query<HTMLInputElement>(ticket, '#limitPrice').value).toBe('4790.00');
+
+    // Switching to another instrument still leaves amend mode.
+    ticket.instrument = ACME;
+    await rendered(ticket);
+    await ticket.activeController!.ready;
+    await rendered(ticket);
+    expect(ticket.activeController!.state.value).toMatchObject({ mode: 'new', instrumentId: ACME });
+  });
+
+  it('puts a price from elsewhere, such as a chart click, into the main price field', async () => {
+    const { ticket } = await mount();
+    ticket.usePrice(99.5);
+    await rendered(ticket);
+    expect(ticket.activeController!.state.value.limitPrice).toBeUndefined();
+
+    radio(ticket, 'kind', 'stop').click();
+    await rendered(ticket);
+    ticket.usePrice(100.5);
+    await rendered(ticket);
+    expect(query<HTMLInputElement>(ticket, '#stopPrice').value).toBe('100.50');
+  });
+
   it('says why it cannot be used', async () => {
     const { ticket, session, settle } = await mount();
     await session.stop();

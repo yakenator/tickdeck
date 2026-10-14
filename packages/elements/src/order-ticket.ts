@@ -275,6 +275,16 @@ export class TdkOrderTicketElement extends TdkWidgetElement<OrderTicketControlle
     return this.activeController?.amend(order) ?? Promise.resolve();
   }
 
+  /**
+   * Puts a price into the order's main price field: the limit price of a
+   * limit order, the stop price of a stop or stop-limit order. Market orders
+   * have no price field, so nothing changes. For prices picked elsewhere,
+   * such as a click on a chart.
+   */
+  usePrice(price: number): void {
+    this.activeController?.usePrice(price);
+  }
+
   /** Same as pressing the submit button. */
   submit(): Promise<boolean> {
     return this.activeController?.submit() ?? Promise.resolve(false);
@@ -307,7 +317,15 @@ export class TdkOrderTicketElement extends TdkWidgetElement<OrderTicketControlle
     super.willUpdate(changed);
     const controller = this.activeController;
     if (!controller) return;
-    if (changed.has('instrument') && this.instrument !== undefined) void controller.setInstrument(this.instrument);
+    // `amend(order)` may already have switched to the instrument, and switching to the shown one would leave amend mode.
+    const shown = controller.state.value;
+    if (
+      changed.has('instrument') &&
+      this.instrument !== undefined &&
+      (this.instrument !== shown.instrumentId || shown.availability === 'error')
+    ) {
+      void controller.setInstrument(this.instrument);
+    }
     if (changed.has('side') && this.side) controller.setSide(this.side);
     if (changed.has('kind') && this.kind) controller.setKind(this.kind);
   }
