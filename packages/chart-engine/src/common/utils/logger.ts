@@ -10,10 +10,20 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified by tickdeck contributors.
  */
 
 // @ts-nocheck
-const DEV = process.env.NODE_ENV === 'development'
+function isDevelopment(): boolean {
+  // Bundlers replace `process.env.NODE_ENV` at build time. Without a bundler `process` may not exist.
+  try {
+    return process.env.NODE_ENV === 'development'
+  } catch {
+    return false
+  }
+}
+
+const DEV = isDevelopment()
 
 function log(templateText: string, tagStyle: string, messageStyle: string, api: string, invalidParam: string, append: string): void {
   if (DEV) {
