@@ -77,42 +77,45 @@ Rules:
 
 ## Data feed contract
 
-The integrator supplies a feed object. tickdeck calls it and never assumes where the data comes from.
+The integrator supplies a `MarketFeed`. tickdeck calls it and never assumes where the data comes from.
 
-What a feed provides:
-
-- **Capabilities.** Which timeframes, instrument kinds and venues exist, and whether quotes, depth, server time and event markers are available. tickdeck hides features the feed cannot back.
-- **Instrument lookup.** Text search, and resolving an instrument id to metadata: display name, venue, kind, timezone, trading sessions, tick size, quantity step and currency.
-- **History.** Bars for an instrument and timeframe within a time window. tickdeck asks for older pages as the user scrolls back, and the feed says when there is nothing older.
-- **Live bars.** A stream of updates to the newest bar. Equal timestamps update the bar in place, and a later timestamp starts a new bar. The feed can also report that past data changed, which makes tickdeck reload.
-- **Quotes.** Last price, bid, ask, change and volume for a set of instruments. The watchlist, order ticket, trade buttons and P&L figures rely on them.
-- **Depth.** Order book snapshots followed by incremental changes, used by the depth ladder.
+| Member | Provides |
+|---|---|
+| `getCapabilities()` | Timeframes, instrument kinds and venues for search filters, and whether search, depth and server time exist. tickdeck hides features the feed cannot back. |
+| `findInstruments(query)`, `getInstrument(id)` | Text search, and an id resolved to an `Instrument`: name, kind, venue, currency, timezone, trading session, tick size, price precision, quantity rules (min, max, step) and point value. |
+| `loadHistory(request)` | One page of bars with `from <= time < to`, oldest first. `count` asks for at least that many bars before `to`; `firstPage` marks the first request after a change. The page sets `endOfHistory` when nothing older exists, or `olderBarTime` to jump over a gap. |
+| `streamBars(request, listener)` | Updates to the newest bar: an equal `time` replaces it, a later `time` starts a new bar. `onHistoryChanged` makes tickdeck drop its cache and reload. |
+| `loadQuotes(ids)`, `streamQuotes({ instruments, focus }, listener)` | Last, bid, ask, sizes, day range, change and volume. `focus` instruments (order ticket, trade buttons, positions) update promptly; the rest may update about once a minute. |
+| `streamDepth?(id, listener)` | Order book: a snapshot (levels best first), then deltas where `size: 0` removes a level. |
+| `loadServerTime?()` | The server clock. |
 
 Conventions:
 
-- Requests return promises. Streams take a callback and return an `Unsubscribe` function, so there are no paired success and error callbacks and no subscription ids.
-- Results are always treated as asynchronous, even when the feed has them cached.
-- Times are UTC epoch milliseconds. Timeframes are compact strings such as `1s`, `1m`, `15m`, `1h`, `1D`, `1W` and `1M`.
-- Tick size drives price rounding and formatting. Money values use decimal-safe arithmetic.
-- `@tickdeck/datafeed` ships two reference adapters, one for HTTP polling against a small JSON API and one for WebSocket streaming. Integrators can use them or implement the contract directly.
+- Requests return promises and reject with `FeedError`. Streams take a listener and return an `Unsubscribe` function, so there are no paired success and error callbacks and no subscription ids.
+- Listeners are always called asynchronously, even when the feed has the data cached.
+- Times are UTC epoch milliseconds. Timeframes are a count plus a case-sensitive unit: `t` ticks, `s`, `m`, `h`, then calendar units `D`, `W`, `M` (`100t`, `15s`, `5m`, `4h`, `1D`, `1W`, `1M`).
+- Tick size drives price rounding and formatting. Prices, quantities and money use the decimal-exact helpers in `core`.
+- The quote half of the contract (`QuoteSource`) lives in `core`, so `broker` can consume quotes without depending on `datafeed`.
+
+`@tickdeck/datafeed` ships `MockFeed` (a seeded random walk with consistent bars at every timeframe, realtime ticks, quotes and depth, and manual quotes for tests) and `HttpPollingFeed` (a small JSON-over-HTTP API with replaceable paths and decoders, polling for realtime data). A WebSocket streaming adapter is planned for P2.
 
 ## Broker adapter contract
 
 Trading traffic flows in two directions.
 
-- **Commands** (tickdeck → adapter): connect; list accounts and pick the active one; fetch snapshots of orders, positions, fills and balances; submit, amend and cancel orders; close or reverse positions; set or change protective exits (take-profit and stop-loss); and optionally preview an order (costs, margin, warnings) before it is sent.
-- **Updates** (adapter → tickdeck): on connect, the adapter receives an update sink. It pushes order, position and fill changes, balance, equity and margin figures, P&L and connection state through it. When the adapter loses track of state, it can push a full resync.
+- **Requests** (tickdeck → `BrokerConnector`): connect; capabilities and connection state; list accounts, read and switch the active one; snapshots of orders, positions, fills and balance; trading rules per instrument (tradable, tick size, quantity rules, allowed order kinds and durations, point value); submit, amend and cancel orders; close (fully or partly) and reverse positions; set protective exits on a position; and optionally check an order first, which returns estimates, warnings and a confirmation token for the submit.
+- **Updates** (connector → tickdeck): `connect` receives a sink, and the connector pushes `order`, `position`, `fill`, `pnl`, `balance`, `connection`, `account` (active account changed), `notice` and `resync` (full replacement) through `sink.emit`.
 
 Principles:
 
-- **The integrator's backend is the source of truth.** tickdeck keeps a derived, in-memory view and never persists trading state.
-- **Capabilities drive the UI.** The adapter declares what it supports, such as order kinds, durations (time in force), protective exits, partial close, reversal, preview and multiple accounts. Unsupported controls are hidden. Where it is safe, a missing operation is emulated with plain orders (for example, closing through an offsetting market order), and the adapter can turn emulation off.
-- **Orders only move forward.** An order goes from `pending` to `open`, or to `held` for a child order waiting for its parent to fill. It ends in `filled`, `cancelled` or `rejected`. Partial fills stay `open` while the filled quantity grows.
-- **Commands are acknowledged.** Every command must be confirmed by a matching update within a configurable deadline. If not, tickdeck reports a timeout and requests a resync.
-- **Protective exits follow their parent.** Take-profit and stop-loss orders attached to an entry order are `held` until it fills. They then protect the resulting position, and when one exit fills the other is cancelled.
-- **Integrator data passes through.** Orders and positions carry a `meta` field that tickdeck never interprets.
+- **The integrator's backend is the source of truth.** `BrokerSession` keeps a derived, in-memory view and never persists trading state.
+- **Capabilities drive the UI.** The connector declares order kinds, durations (time in force), exits on orders and on positions, amendments, native close, partial close and reverse, order checks and multiple accounts. Unsupported controls are hidden. Closing is emulated with a reduce-only market order and reversing with a market order for twice the size, unless the connector turns emulation off.
+- **Orders only move forward.** `pending` → `held` → `open` → `filled`, `cancelled` or `rejected`; steps may be skipped, partial fills stay `open` while the filled quantity grows, and final states never change. Updates that break this are ignored and reported as a `violation`.
+- **Actions are acknowledged.** Every submit, amend, cancel, close, reverse and exit change must be followed by its confirming update within a deadline (10 seconds by default). Otherwise the session emits an `AckTimeoutError` and reloads state.
+- **Protective exits follow their parent.** Take-profit (limit) and stop-loss (stop) orders attached to an entry are `held` until it fills, then protect the resulting position. When one fills, the other is cancelled.
+- **Integrator data passes through.** Orders, positions and fills carry a `meta` field that tickdeck never interprets.
 
-`@tickdeck/broker` includes an in-memory **mock broker**. It fills market orders immediately and fills limit and stop orders from the quote stream. That lets the whole UI be developed, demoed and tested without a real broker.
+`@tickdeck/broker` includes `MockBroker`, which simulates execution against any quote stream (such as `MockFeed`): market orders at the bid or ask, limit, stop and stop-limit orders as quotes cross, protective exits with OCO, netting positions with partial close and reverse, fills, unrealized P&L, balance and equity. That lets the whole UI be developed, demoed and tested without a real broker.
 
 ## Widgets
 
