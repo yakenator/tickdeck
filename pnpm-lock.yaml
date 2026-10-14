@@ -29,9 +29,6 @@ importers:
       '@tickdeck/datafeed':
         specifier: workspace:*
         version: link:../../packages/datafeed
-      '@tickdeck/elements':
-        specifier: workspace:*
-        version: link:../../packages/elements
       '@tickdeck/react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -97,9 +94,6 @@ importers:
       '@tickdeck/datafeed':
         specifier: workspace:*
         version: link:../../packages/datafeed
-      '@tickdeck/elements':
-        specifier: workspace:*
-        version: link:../../packages/elements
       '@tickdeck/vue':
         specifier: workspace:*
         version: link:../../packages/vue
@@ -265,12 +259,27 @@ importers:
         specifier: workspace:*
         version: link:../elements
     devDependencies:
+      '@tickdeck/broker':
+        specifier: workspace:*
+        version: link:../broker
+      '@tickdeck/datafeed':
+        specifier: workspace:*
+        version: link:../datafeed
       '@types/react':
         specifier: ^19.3.0
         version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
       react:
         specifier: ^19.3.0
         version: 19.3.0
+      react-dom:
+        specifier: ^19.3.0
+        version: 19.3.0(react@19.3.0)
+      vitest:
+        specifier: ^5.0.4
+        version: 5.0.4(@types/node@26.6.5)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.27.7)(yaml@2.9.1))
 
   packages/storage:
     dependencies:
@@ -284,6 +293,15 @@ importers:
         specifier: workspace:*
         version: link:../elements
     devDependencies:
+      '@tickdeck/broker':
+        specifier: workspace:*
+        version: link:../broker
+      '@tickdeck/datafeed':
+        specifier: workspace:*
+        version: link:../datafeed
+      vitest:
+        specifier: ^5.0.4
+        version: 5.0.4(@types/node@26.6.5)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.27.7)(yaml@2.9.1))
       vue:
         specifier: ^3.5.44
         version: 3.5.44(typescript@6.0.3)

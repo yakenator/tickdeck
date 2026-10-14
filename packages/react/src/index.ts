@@ -35,6 +35,30 @@ import { version } from '../package.json';
 
 export const VERSION: string = version;
 
+// Element and event types, so applications type refs and handlers without importing `@tickdeck/elements` themselves.
+export type {
+  TdkAccountPanelElement,
+  TdkActionErrorDetail,
+  TdkAmendDetail,
+  TdkCancelOrderDetail,
+  TdkClosePositionDetail,
+  TdkDismissDetail,
+  TdkEditExitsDetail,
+  TdkEventMap,
+  TdkNotificationDetail,
+  TdkNotificationsElement,
+  TdkOrderAmendedDetail,
+  TdkOrderErrorDetail,
+  TdkOrderPlacedDetail,
+  TdkOrderTicketElement,
+  TdkReversePositionDetail,
+  TdkTabChangeDetail,
+  TdkTheme,
+  TdkToastPlacement,
+  TdkTradeButtonsElement,
+  TicketInstrumentChoice,
+} from '@tickdeck/elements';
+
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 // React 18 passes `className` to custom elements as an attribute named `className`.
 const LEGACY_CLASS_NAME = Number.parseInt(reactVersion, 10) < 19;

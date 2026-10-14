@@ -19,8 +19,7 @@ npm install @tickdeck/vue @tickdeck/broker @tickdeck/datafeed
 import { ref, shallowRef } from 'vue';
 import { BrokerSession, MockBroker } from '@tickdeck/broker';
 import { MockFeed } from '@tickdeck/datafeed';
-import type { TdkAmendDetail } from '@tickdeck/elements';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons } from '@tickdeck/vue';
+import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons, type TdkAmendDetail } from '@tickdeck/vue';
 
 const feed = new MockFeed();
 const session = shallowRef(new BrokerSession(new MockBroker({ feed })));
@@ -48,7 +47,7 @@ Emits carry the event detail. The cancelable account panel events (`cancel-order
 
 ## Components
 
-All components accept `session`, `feed`, `controller` and `theme` (see `@tickdeck/elements`).
+All components accept `session`, `feed`, `controller` and `theme` (see the [`@tickdeck/elements` README](https://github.com/yakenator/tickdeck/tree/main/packages/elements#readme)).
 
 | Component | Props | Emits |
 |---|---|---|
@@ -57,6 +56,6 @@ All components accept `session`, `feed`, `controller` and `theme` (see `@tickdec
 | `TdkTradeButtons` | `instrument`, `quantity`, `confirm` | `order-placed`, `order-error` |
 | `TdkNotifications` | `placement`, `hideLog`, `maxToasts` | `notification`, `dismiss` |
 
-Detail types (`TdkOrderPlacedDetail` and the others) are exported by `@tickdeck/elements`. Theming (`--tdk-*` custom properties and `::part()`) is described there as well.
+`@tickdeck/vue` also exports the detail types (`TdkOrderPlacedDetail` and the others) and the element types (`TdkOrderTicketElement` and the others), so you never import from `@tickdeck/elements` directly; it is installed as a dependency of `@tickdeck/vue`. Theming (`--tdk-*` custom properties and `::part()`) is described in the [`@tickdeck/elements` README](https://github.com/yakenator/tickdeck/tree/main/packages/elements#readme).
 
 Part of [tickdeck](https://github.com/yakenator/tickdeck). Licensed under Apache-2.0.

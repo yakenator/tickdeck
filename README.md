@@ -107,8 +107,7 @@ import { useEffect, useRef } from 'react';
 import { attachTrading, createChartView } from '@tickdeck/chart';
 import { BrokerSession, MockBroker } from '@tickdeck/broker';
 import { MockFeed } from '@tickdeck/datafeed';
-import type { TdkOrderTicketElement } from '@tickdeck/elements';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket } from '@tickdeck/react';
+import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, type TdkOrderTicketElement } from '@tickdeck/react';
 
 const feed = new MockFeed();
 const session = new BrokerSession(new MockBroker({ feed }));

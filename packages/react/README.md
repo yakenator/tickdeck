@@ -18,8 +18,7 @@ npm install @tickdeck/react @tickdeck/broker @tickdeck/datafeed
 import { useEffect, useRef, useState } from 'react';
 import { BrokerSession, MockBroker } from '@tickdeck/broker';
 import { MockFeed } from '@tickdeck/datafeed';
-import type { TdkOrderTicketElement } from '@tickdeck/elements';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons } from '@tickdeck/react';
+import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons, type TdkOrderTicketElement } from '@tickdeck/react';
 
 const feed = new MockFeed();
 const session = new BrokerSession(new MockBroker({ feed }));
@@ -55,7 +54,7 @@ Other props (`id`, `className`, `style`, `aria-*`, `children`) go to the element
 
 ## Components
 
-All components accept `session`, `feed`, `controller` and `theme` (see `@tickdeck/elements`).
+All components accept `session`, `feed`, `controller` and `theme` (see the [`@tickdeck/elements` README](https://github.com/yakenator/tickdeck/tree/main/packages/elements#readme)).
 
 | Component | Element | Props | Callbacks |
 |---|---|---|---|
@@ -64,7 +63,7 @@ All components accept `session`, `feed`, `controller` and `theme` (see `@tickdec
 | `TdkTradeButtons` | `tdk-trade-buttons` | `instrument`, `quantity`, `confirm` | `onOrderPlaced`, `onOrderError` |
 | `TdkNotifications` | `tdk-notifications` | `placement`, `hideLog`, `maxToasts` | `onNotification`, `onDismiss` |
 
-Event detail types (`TdkOrderPlacedDetail` and the others) are exported by `@tickdeck/elements`. Theming (`--tdk-*` custom properties and `::part()`) is described there as well.
+`@tickdeck/react` also exports the element types for refs (`TdkOrderTicketElement` and the others) and the event detail types (`TdkOrderPlacedDetail` and the others), so you never import from `@tickdeck/elements` directly; it is installed as a dependency of `@tickdeck/react`. Theming (`--tdk-*` custom properties and `::part()`) is described in the [`@tickdeck/elements` README](https://github.com/yakenator/tickdeck/tree/main/packages/elements#readme).
 
 To render a controller you manage yourself (for example to share one between components or to drive it from code), create it with `@tickdeck/widgets-core` and pass it as `controller`.
 

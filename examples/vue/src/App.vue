@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { BrokerSession, MockBroker, type BrokerPosition } from '@tickdeck/broker';
 import { MockFeed } from '@tickdeck/datafeed';
-import type { TdkAmendDetail, TdkEditExitsDetail } from '@tickdeck/elements';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons } from '@tickdeck/vue';
+import {
+  TdkAccountPanel,
+  TdkNotifications,
+  TdkOrderTicket,
+  TdkTradeButtons,
+  type TdkAmendDetail,
+  type TdkEditExitsDetail,
+} from '@tickdeck/vue';
 import { ref, shallowRef } from 'vue';
 import TradingChart from './TradingChart.vue';
 

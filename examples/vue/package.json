@@ -15,7 +15,6 @@
     "@tickdeck/broker": "workspace:*",
     "@tickdeck/chart": "workspace:*",
     "@tickdeck/datafeed": "workspace:*",
-    "@tickdeck/elements": "workspace:*",
     "@tickdeck/vue": "workspace:*",
     "vue": "^3.5.44"
   },

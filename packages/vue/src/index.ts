@@ -23,6 +23,30 @@ import { version } from '../package.json';
 
 export const VERSION: string = version;
 
+// Element and event types, so applications type refs and handlers without importing `@tickdeck/elements` themselves.
+export type {
+  TdkAccountPanelElement,
+  TdkActionErrorDetail,
+  TdkAmendDetail,
+  TdkCancelOrderDetail,
+  TdkClosePositionDetail,
+  TdkDismissDetail,
+  TdkEditExitsDetail,
+  TdkEventMap,
+  TdkNotificationDetail,
+  TdkNotificationsElement,
+  TdkOrderAmendedDetail,
+  TdkOrderErrorDetail,
+  TdkOrderPlacedDetail,
+  TdkOrderTicketElement,
+  TdkReversePositionDetail,
+  TdkTabChangeDetail,
+  TdkTheme,
+  TdkToastPlacement,
+  TdkTradeButtonsElement,
+  TicketInstrumentChoice,
+} from '@tickdeck/elements';
+
 /**
  * A wrapper's type with the exposed `element` (the custom element, once
  * mounted) on its instance, so `ref<InstanceType<typeof TdkOrderTicket>>()`

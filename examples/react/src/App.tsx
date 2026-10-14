@@ -1,7 +1,13 @@
 import { BrokerSession, MockBroker, type BrokerPosition } from '@tickdeck/broker';
 import { MockFeed } from '@tickdeck/datafeed';
-import type { TdkAccountPanelElement, TdkOrderTicketElement } from '@tickdeck/elements';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons } from '@tickdeck/react';
+import {
+  TdkAccountPanel,
+  TdkNotifications,
+  TdkOrderTicket,
+  TdkTradeButtons,
+  type TdkAccountPanelElement,
+  type TdkOrderTicketElement,
+} from '@tickdeck/react';
 import { useEffect, useRef, useState } from 'react';
 import { TradingChart } from './TradingChart';
 

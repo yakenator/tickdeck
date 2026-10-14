@@ -34,7 +34,8 @@
   ],
   "scripts": {
     "build": "tsup && node ../../scripts/copy-legal.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tickdeck/elements": "workspace:*"
@@ -43,6 +44,9 @@
     "vue": "^3.4.0"
   },
   "devDependencies": {
+    "@tickdeck/broker": "workspace:*",
+    "@tickdeck/datafeed": "workspace:*",
+    "vitest": "^5.0.4",
     "vue": "^3.5.44"
   },
   "engines": {
