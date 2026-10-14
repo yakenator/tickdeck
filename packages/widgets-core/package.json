@@ -1,7 +1,7 @@
 {
   "name": "@tickdeck/widgets-core",
   "version": "0.0.0",
-  "description": "Headless widget controllers for tickdeck trading UI.",
+  "description": "Headless controllers for tickdeck trading widgets: account panel, order ticket, trade buttons and notifications.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -23,12 +23,16 @@
   ],
   "scripts": {
     "build": "tsup && node ../../scripts/copy-legal.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tickdeck/core": "workspace:*",
     "@tickdeck/broker": "workspace:*",
     "@tickdeck/datafeed": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.4"
   },
   "engines": {
     "node": ">=20"
