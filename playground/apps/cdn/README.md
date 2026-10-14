@@ -5,7 +5,7 @@
 `@tickdeck/all/dist/tickdeck.js` is one ES module with everything inlined except the React and Vue wrappers. Loading it registers the `tdk-*` elements; importing from the same URL gives you every API.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.1/dist/tickdeck.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.2/dist/tickdeck.js"></script>
 
 <div id="chart" style="height: 440px"></div>
 <tdk-trade-buttons instrument="MOCK:ACME" quantity="10"></tdk-trade-buttons>
@@ -14,7 +14,7 @@
 <tdk-notifications placement="bottom-end"></tdk-notifications>
 
 <script type="module">
-  import { BrokerSession, MockBroker, MockFeed, attachTrading, createChartView } from 'https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.1/dist/tickdeck.js';
+  import { BrokerSession, MockBroker, MockFeed, attachTrading, createChartView } from 'https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.2/dist/tickdeck.js';
 
   const feed = new MockFeed();
   const session = new BrokerSession(new MockBroker({ feed }));

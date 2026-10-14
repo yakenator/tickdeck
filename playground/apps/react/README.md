@@ -3,7 +3,7 @@
 `@tickdeck/react` renders each element as a React 18 or 19 component. Rich props (`session`, `feed`, `controller`) become element properties, callback props such as `onAmend` subscribe to the element's events, and `ref` reaches the element itself. This app uses React 19 and Vite.
 
 ```sh
-npm install @tickdeck/react@0.1.0-alpha.1 @tickdeck/elements@0.1.0-alpha.1 @tickdeck/chart@0.1.0-alpha.1 @tickdeck/broker@0.1.0-alpha.1 @tickdeck/datafeed@0.1.0-alpha.1 react react-dom
+npm install @tickdeck/react@0.1.0-alpha.2 @tickdeck/elements@0.1.0-alpha.2 @tickdeck/chart@0.1.0-alpha.2 @tickdeck/broker@0.1.0-alpha.2 @tickdeck/datafeed@0.1.0-alpha.2 react react-dom
 ```
 
 ```tsx

@@ -3,9 +3,9 @@
 The full trading screen with the `tdk-*` custom elements and the chart, installed from npm and bundled with Vite. No framework.
 
 ```sh
-npm install @tickdeck/elements@0.1.0-alpha.1 @tickdeck/chart@0.1.0-alpha.1 @tickdeck/broker@0.1.0-alpha.1 @tickdeck/datafeed@0.1.0-alpha.1
+npm install @tickdeck/elements@0.1.0-alpha.2 @tickdeck/chart@0.1.0-alpha.2 @tickdeck/broker@0.1.0-alpha.2 @tickdeck/datafeed@0.1.0-alpha.2
 # used here for exact price math and error messages:
-npm install @tickdeck/core@0.1.0-alpha.1 @tickdeck/widgets-core@0.1.0-alpha.1
+npm install @tickdeck/core@0.1.0-alpha.2 @tickdeck/widgets-core@0.1.0-alpha.2
 ```
 
 ```html

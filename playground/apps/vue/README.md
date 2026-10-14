@@ -3,7 +3,7 @@
 `@tickdeck/vue` renders each element as a Vue 3 component: props are bound as element properties, the element's events are emits (`@amend`, `@edit-exits`), and the component instance exposes the element as `element`. This app uses Vue 3.5 and Vite.
 
 ```sh
-npm install @tickdeck/vue@0.1.0-alpha.1 @tickdeck/elements@0.1.0-alpha.1 @tickdeck/chart@0.1.0-alpha.1 @tickdeck/broker@0.1.0-alpha.1 @tickdeck/datafeed@0.1.0-alpha.1 vue
+npm install @tickdeck/vue@0.1.0-alpha.2 @tickdeck/elements@0.1.0-alpha.2 @tickdeck/chart@0.1.0-alpha.2 @tickdeck/broker@0.1.0-alpha.2 @tickdeck/datafeed@0.1.0-alpha.2 vue
 ```
 
 ```vue

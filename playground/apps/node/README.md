@@ -5,7 +5,7 @@ tickdeck's logic layer runs without a DOM. Two scripts, run by `npm run test:nod
 ## [`strategy.mjs`](strategy.mjs): a bracket order on the broker session
 
 ```sh
-npm install @tickdeck/broker@0.1.0-alpha.1 @tickdeck/datafeed@0.1.0-alpha.1 @tickdeck/core@0.1.0-alpha.1
+npm install @tickdeck/broker@0.1.0-alpha.2 @tickdeck/datafeed@0.1.0-alpha.2 @tickdeck/core@0.1.0-alpha.2
 ```
 
 ```js

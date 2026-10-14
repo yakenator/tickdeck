@@ -9,7 +9,7 @@ A consumer that uses every framework-agnostic package, the React and Vue wrapper
 | [`tsconfig.node16.json`](tsconfig.node16.json) | `Node16` / `Node16` |
 
 ```sh
-npm install @tickdeck/all@0.1.0-alpha.1 @tickdeck/react@0.1.0-alpha.1 @tickdeck/vue@0.1.0-alpha.1
+npm install @tickdeck/all@0.1.0-alpha.2 @tickdeck/react@0.1.0-alpha.2 @tickdeck/vue@0.1.0-alpha.2
 npm install -D typescript @types/react
 ```
 

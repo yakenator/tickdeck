@@ -13,12 +13,12 @@
     "test:storybook": "vitest run --project storybook"
   },
   "dependencies": {
-    "@tickdeck/broker": "0.1.0-alpha.1",
-    "@tickdeck/chart": "0.1.0-alpha.1",
-    "@tickdeck/core": "0.1.0-alpha.1",
-    "@tickdeck/datafeed": "0.1.0-alpha.1",
-    "@tickdeck/elements": "0.1.0-alpha.1",
-    "@tickdeck/widgets-core": "0.1.0-alpha.1",
+    "@tickdeck/broker": "0.1.0-alpha.2",
+    "@tickdeck/chart": "0.1.0-alpha.2",
+    "@tickdeck/core": "0.1.0-alpha.2",
+    "@tickdeck/datafeed": "0.1.0-alpha.2",
+    "@tickdeck/elements": "0.1.0-alpha.2",
+    "@tickdeck/widgets-core": "0.1.0-alpha.2",
     "lit": "^3.3.3"
   },
   "devDependencies": {
