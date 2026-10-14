@@ -69,6 +69,8 @@ session.positions;      // open positions
 session.balance.value;  // AccountBalance, observable
 ```
 
+`start()` connects and loads the account. `session.connection` reads `connecting` from the moment `start()` is called, then whatever the connector reports (`connected` once it is up). If connecting or loading fails, `connection` reads `error` with the reason as `message`, `start()` rejects, and it can be called again; a connector that did connect is disconnected first. Widgets show "Connecting to the broker…" until then, so they can be rendered before `start()` resolves.
+
 When the connector has no native close or reverse, the session sends a reduce-only market order (close) or a market order for twice the size (reverse), unless the connector sets `emulation: false`.
 
 ## `MockBroker`

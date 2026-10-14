@@ -286,6 +286,8 @@ export class NotificationCenter extends WidgetController<NotificationCenterState
         message: connection.message,
         source: 'connection',
       });
+    } else if (previous === 'connecting' && connection.state === 'error' && notify) {
+      this.push({ level: 'error', title: 'Could not connect to the broker', message: connection.message, source: 'connection' });
     }
   }
 }

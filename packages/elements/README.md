@@ -52,6 +52,8 @@ npm install @tickdeck/elements @tickdeck/broker @tickdeck/datafeed
 
 Rich values (session, feed, controller, arrays) are properties. Simple settings also work as attributes.
 
+The elements can get a session before `session.start()` has finished: they show "Connecting to the broker…" until the session is connected, and the reason if connecting fails.
+
 ## Elements
 
 ### `<tdk-order-ticket>`
@@ -87,7 +89,7 @@ Keyboard: arrow keys, Home and End move between tabs.
 
 ### `<tdk-trade-buttons>`
 
-Sell (at the bid) and buy (at the ask) buttons with the spread between them, and a quantity field. A disabled side says why (not connected, not tradable, invalid quantity, no price).
+Sell (at the bid) and buy (at the ask) buttons with the spread between them, and a quantity field. A disabled side says why (connecting, not connected, not tradable, invalid quantity, no price). Each button is named by its visible text ("Sell 111.22") and described by the order it sends ("Sell 10 ACME at market").
 
 | Property | Attribute | Description |
 |---|---|---|

@@ -311,7 +311,9 @@ export class TdkAccountPanelElement extends TdkWidgetElement<AccountPanelControl
     const text =
       state.status === 'loading'
         ? 'Loading account…'
-        : `Not connected to the broker${state.message ? `: ${state.message}` : ''}`;
+        : state.status === 'connecting'
+          ? (state.message ?? 'Connecting to the broker…')
+          : `Not connected to the broker${state.message ? `: ${state.message}` : ''}`;
     return html`<p class="banner" part="status" role="status">${text}</p>`;
   }
 

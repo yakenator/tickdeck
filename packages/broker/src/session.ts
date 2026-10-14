@@ -157,14 +157,29 @@ export class BrokerSession {
     return this.#positions.get(id);
   }
 
-  /** Connects and loads capabilities, accounts, orders, positions, fills and balance. */
+  /**
+   * Connects and loads capabilities, accounts, orders, positions, fills and
+   * balance. `connection` reads `connecting` from the moment this is called,
+   * then follows the connector. If anything fails, `connection` reads `error`
+   * with the reason, the promise rejects, and `start()` can be called again.
+   */
   async start(): Promise<void> {
     if (this.#started) return;
     this.#started = true;
-    await this.connector.connect(this.#sink);
-    this.#capabilities = resolveBrokerCapabilities(await this.connector.getCapabilities());
-    this.#connection.set(await this.connector.getConnection());
-    await this.#loadAccount();
+    this.#connection.set({ state: 'connecting' });
+    let connected = false;
+    try {
+      await this.connector.connect(this.#sink);
+      connected = true;
+      this.#capabilities = resolveBrokerCapabilities(await this.connector.getCapabilities());
+      this.#connection.set(await this.connector.getConnection());
+      await this.#loadAccount();
+    } catch (error) {
+      this.#started = false;
+      if (connected) await this.connector.disconnect?.().catch(() => {});
+      this.#connection.set({ state: 'error', message: errorMessage(error) });
+      throw error;
+    }
   }
 
   async stop(): Promise<void> {
@@ -432,6 +447,10 @@ export class BrokerSession {
         return false;
     }
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function isSubmitAck(update: BrokerUpdate, targetId: string | undefined): boolean {

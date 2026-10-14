@@ -58,7 +58,7 @@ Orders, positions and fills of the active account with a balance summary.
 
 | State | Meaning |
 |---|---|
-| `status` | `loading`, `ready` or `disconnected` (with `message`) |
+| `status` | `connecting` (while the session connects), `loading` (until the account is loaded), `ready` or `disconnected`, with the connection's `message` |
 | `summary` | Account name and currency, plus `items`: balance, equity, unrealized and realized P&L, margin when reported. Each has `text` and a `tone` |
 | `tab`, `orderFilter`, `sort` | Selected tab (`orders`, `positions`, `fills`), `working` or `all` orders, and the sort column and direction per tab |
 | `columns` | Column ids, labels and alignment per tab |
@@ -83,7 +83,7 @@ Order entry for one instrument.
 - **Estimates**: notional value, margin (when the rules have a margin rate), risk to the stop-loss and reward to the take-profit, in the instrument's currency.
 - **Submitting**: `submit()` sends the order and waits for the broker's acknowledgement (`phase: 'submitting'`, `busy`). With `checkOrders` (default: the broker's `orderCheck` capability) it first calls `checkOrder` and moves to `phase: 'review'` with the broker's estimates and warnings; `confirm()` sends the order with the confirmation token and `cancelReview()` goes back. Rejections, thrown errors and `AckTimeoutError` end up in `result` and in the `error` event.
 - **Amend mode**: `amend(order)` loads a working order; side, kind and instrument are locked, and `submit()` sends only the changed fields (`null` removes an exit). `cancelAmend()` leaves it. If the order ends meanwhile, the ticket leaves amend mode with an info `result`.
-- **Availability**: `availability` is `no-instrument`, `loading`, `ready`, `disconnected`, `not-tradable` or `error`, with a `reason`.
+- **Availability**: `availability` is `no-instrument`, `loading`, `ready`, `connecting`, `disconnected`, `not-tradable` or `error`, with a `reason` (`Connecting to the broker…` while the session connects).
 
 Events: `placed` (`{ orderId, request }`), `amended` (`{ orderId, changes }`), `error` (`{ action: 'check' | 'submit' | 'amend', error, message }`).
 
@@ -95,7 +95,7 @@ One-click market orders with live bid, ask and spread.
 
 - State: `buy` and `sell` views (`price`, `priceText`, `enabled`, `reason`, `description`), `quote`, `quantity` and `quantityError`, `armed` and `busy` sides, `result`, `availability` and `reason`.
 - Actions: `setInstrument`, `setQuantity`, `stepQuantity`, `buy()`, `sell()`, `trade(side)`. With `confirm: true`, `trade` only arms a side; `confirmTrade()` sends it and `cancelTrade()` disarms. An armed side disarms itself after `confirmTimeoutMs` (10 s).
-- A side is disabled, with a reason, while disconnected, loading, not tradable, without market orders, with an invalid quantity, without a price on its side, or while an order is in flight.
+- A side is disabled, with a reason, while connecting or disconnected, loading, not tradable, without market orders, with an invalid quantity, without a price on its side, or while an order is in flight.
 - Events: `placed`, `error`.
 
 ## `NotificationCenter`
@@ -109,7 +109,7 @@ Toasts and an in-memory log built from session activity:
 | `rejection` | `Order rejected` with the order and the broker's reason (a matching error notice is not shown twice) |
 | `timeout` | `No confirmation from the broker` for an `AckTimeoutError` |
 | `violation` | `Ignored an inconsistent order update` |
-| `connection` | `Connection to the broker lost` and `Reconnected` |
+| `connection` | `Connection to the broker lost`, `Reconnected`, and `Could not connect to the broker` when the session fails to start |
 
 State: `toasts` (on screen, oldest first), `log` (newest first, up to `logLimit`), `paused`. Actions: `push(input)` for your own messages, `dismiss(id)`, `dismissAll()`, `clearLog()`, `pause()` and `resume()` (hold auto-dismiss while the user reads). Events: `notification`, `dismiss`.
 

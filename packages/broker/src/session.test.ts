@@ -1,8 +1,28 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { OrderUpdateProblem } from './order-state';
+import type { BrokerUpdateSink } from './contract';
 import { BrokerError, BrokerSession } from './session';
 import { ScriptedConnector } from './test-connector';
-import type { BrokerOrder, BrokerPosition } from './types';
+import type { BrokerConnectionState, BrokerOrder, BrokerPosition } from './types';
+
+/** A connector whose `connect` waits until the test lets it finish or fail. */
+class GatedConnector extends ScriptedConnector {
+  finish: () => void = () => {};
+  fail: (error: Error) => void = () => {};
+  disconnects = 0;
+
+  override connect(sink: BrokerUpdateSink): Promise<void> {
+    this.sink = sink;
+    return new Promise((resolve, reject) => {
+      this.finish = resolve;
+      this.fail = reject;
+    });
+  }
+
+  async disconnect(): Promise<void> {
+    this.disconnects++;
+  }
+}
 
 const flush = async () => {
   for (let turn = 0; turn < 5; turn++) await Promise.resolve();
@@ -109,5 +129,52 @@ describe('BrokerSession', () => {
 
     expect(session.positions).toEqual([position]);
     expect(onResync).toHaveBeenCalledOnce();
+  });
+
+  it('reads connecting while the connector connects', async () => {
+    const connector = new GatedConnector();
+    const session = new BrokerSession(connector);
+    const states: BrokerConnectionState[] = [];
+    session.connection.subscribe((connection) => states.push(connection.state));
+
+    const started = session.start();
+    expect(session.connection.value).toEqual({ state: 'connecting' });
+    connector.sink!.emit('connection', { state: 'connecting', message: 'Signing in' });
+    expect(session.connection.value).toEqual({ state: 'connecting', message: 'Signing in' });
+
+    connector.finish();
+    await started;
+    expect(session.connection.value.state).toBe('connected');
+    expect(states).toEqual(['connecting', 'connecting', 'connected']);
+  });
+
+  it('reads error when connecting fails, and can start again', async () => {
+    const connector = new GatedConnector();
+    const session = new BrokerSession(connector);
+    const started = session.start();
+    connector.fail(new Error('Network down'));
+
+    await expect(started).rejects.toThrow('Network down');
+    expect(session.connection.value).toEqual({ state: 'error', message: 'Network down' });
+    expect(connector.disconnects).toBe(0);
+    await expect(session.submitOrder({ instrument: 'X', side: 'buy', kind: 'market', quantity: 1 })).rejects.toThrow(BrokerError);
+
+    const again = session.start();
+    expect(session.connection.value.state).toBe('connecting');
+    connector.finish();
+    await again;
+    expect(session.connection.value.state).toBe('connected');
+  });
+
+  it('disconnects again when loading the account fails after connecting', async () => {
+    const connector = new GatedConnector();
+    connector.listAccounts = () => Promise.reject(new Error('No accounts'));
+    const session = new BrokerSession(connector);
+    const started = session.start();
+    connector.finish();
+
+    await expect(started).rejects.toThrow('No accounts');
+    expect(connector.disconnects).toBe(1);
+    expect(session.connection.value).toEqual({ state: 'error', message: 'No accounts' });
   });
 });

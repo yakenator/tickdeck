@@ -25,7 +25,8 @@ import {
 export type AccountTab = 'orders' | 'positions' | 'fills';
 export type OrderFilter = 'working' | 'all';
 export type SortDirection = 'asc' | 'desc';
-export type PanelStatus = 'loading' | 'ready' | 'disconnected';
+/** `connecting` while the session connects, `loading` until the account's orders, positions and fills are in. */
+export type PanelStatus = 'connecting' | 'loading' | 'ready' | 'disconnected';
 /** Colour hint for a cell: trade direction, sign of a P&L, or de-emphasis. */
 export type CellTone = 'buy' | 'sell' | 'positive' | 'negative' | 'muted';
 export type PanelAction = 'cancel' | 'close' | 'reverse' | 'set-exits';
@@ -98,7 +99,7 @@ export interface CloseDraft {
 
 export interface AccountPanelState {
   status: PanelStatus;
-  /** Connection message from the broker, when disconnected. */
+  /** Connection message from the broker, while connecting or when disconnected. */
   message?: string;
   tab: AccountTab;
   orderFilter: OrderFilter;
@@ -705,7 +706,7 @@ export class AccountPanelController extends WidgetController<AccountPanelState, 
 
     this.setState({
       ...patch,
-      status: connected ? (this.#loaded ? 'ready' : 'loading') : connection.state === 'connecting' ? 'loading' : 'disconnected',
+      status: connected ? (this.#loaded ? 'ready' : 'loading') : connection.state === 'connecting' ? 'connecting' : 'disconnected',
       message: connected ? undefined : connection.message,
       summary: this.#summary(session.balance.value),
       orders,

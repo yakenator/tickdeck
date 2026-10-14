@@ -17,7 +17,7 @@ import {
   type TimeInForce,
 } from '@tickdeck/core';
 import { describeTradingError, placeOrder, runAcknowledged } from './actions';
-import type { ActionResult, WidgetAvailability, WidgetContext } from './context';
+import { connectionAvailability, type ActionResult, type WidgetAvailability, type WidgetContext } from './context';
 import { WidgetController } from './controller';
 import { formatAmount } from './format';
 import { InstrumentFormat, getInstrumentResolver, type InstrumentResolver, type TradableInstrument } from './instrument';
@@ -673,14 +673,15 @@ export class OrderTicketController extends WidgetController<OrderTicketState, Or
     const inputs = this.#inputs;
     const connection = session.connection.value;
 
+    const offline = connectionAvailability(connection);
+
     let availability: WidgetAvailability = 'ready';
     let reason: string | undefined;
     if (!this.#instrumentId) {
       availability = 'no-instrument';
       reason = 'Choose an instrument';
-    } else if (connection.state !== 'connected') {
-      availability = 'disconnected';
-      reason = connection.message ?? 'Not connected to the broker';
+    } else if (offline) {
+      ({ availability, reason } = offline);
     } else if (this.#instrumentError) {
       availability = 'error';
       reason = this.#instrumentError;

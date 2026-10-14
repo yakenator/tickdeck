@@ -116,6 +116,7 @@ Principles:
 - **Actions are acknowledged.** Every submit, amend, cancel, close, reverse and exit change must be followed by its confirming update within a deadline (10 seconds by default). Otherwise the session emits an `AckTimeoutError` and reloads state.
 - **Protective exits follow their parent.** Take-profit (limit) and stop-loss (stop) orders attached to an entry are `held` until it fills, then protect the resulting position. When one fills, the other is cancelled.
 - **Integrator data passes through.** Orders, positions and fills carry a `meta` field that tickdeck never interprets.
+- **Connection state is always known.** `BrokerSession.start()` reports `connecting` as soon as it is called, then the connector's state. A failed start reports `error` with the reason and can be retried. Widgets show connecting, disconnected and error states with their reason, so they can be rendered before the session has started.
 
 `@tickdeck/broker` includes `MockBroker`, which simulates execution against any quote stream (such as `MockFeed`): market orders at the bid or ask, limit, stop and stop-limit orders as quotes cross, protective exits with OCO, netting positions with partial close and reverse, fills, unrealized P&L, balance and equity. That lets the whole UI be developed, demoed and tested without a real broker.
 
