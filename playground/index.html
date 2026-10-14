@@ -231,7 +231,7 @@
             <h2>Web Components with a bundler</h2>
             <p>
               The <code>tdk-*</code> custom elements and the chart from npm, bundled with Vite and no framework. This is the full trading
-              screen: instrument, timeframe, style, scale and theme switchers, Alt-click a chart price into the ticket, Modify from the
+              screen: instrument, timeframe, style, scale, volume and theme switchers, Alt-click a chart price into the ticket, Modify from the
               panel, and a take-profit and stop-loss dialog.
             </p>
 <pre><code>npm install @tickdeck/elements@0.1.0-alpha.2 @tickdeck/chart@0.1.0-alpha.2 @tickdeck/broker@0.1.0-alpha.2 @tickdeck/datafeed@0.1.0-alpha.2
@@ -259,7 +259,7 @@ Object.assign(ticket, { session, feed });</code></pre>
               such as <code>onAmend</code> subscribe to its events, and refs reach the element. The chart is created in an effect and
               disposed on unmount.
             </p>
-<pre><code>npm install @tickdeck/react@0.1.0-alpha.2 @tickdeck/elements@0.1.0-alpha.2 @tickdeck/chart@0.1.0-alpha.2 @tickdeck/broker@0.1.0-alpha.2 @tickdeck/datafeed@0.1.0-alpha.2
+<pre><code>npm install @tickdeck/react@0.1.0-alpha.2 @tickdeck/chart@0.1.0-alpha.2 @tickdeck/broker@0.1.0-alpha.2 @tickdeck/datafeed@0.1.0-alpha.2
 
 &lt;TdkOrderTicket ref={ticket} session={session} feed={feed} instrument="MOCK:ACME" kind="limit" /&gt;
 &lt;TdkAccountPanel session={session} feed={feed}
@@ -282,7 +282,7 @@ useEffect(() =&gt; {
               <code>@tickdeck/vue</code> wraps each element as a Vue 3 component with props, emits such as <code>@amend</code> and the
               element exposed on the component instance. The chart is created in <code>onMounted</code> and disposed before unmount.
             </p>
-<pre><code>npm install @tickdeck/vue@0.1.0-alpha.2 @tickdeck/elements@0.1.0-alpha.2 @tickdeck/chart@0.1.0-alpha.2 @tickdeck/broker@0.1.0-alpha.2 @tickdeck/datafeed@0.1.0-alpha.2
+<pre><code>npm install @tickdeck/vue@0.1.0-alpha.2 @tickdeck/chart@0.1.0-alpha.2 @tickdeck/broker@0.1.0-alpha.2 @tickdeck/datafeed@0.1.0-alpha.2
 
 &lt;TdkOrderTicket ref="ticket" :session="session" :feed="feed" instrument="MOCK:ACME" kind="limit" /&gt;
 &lt;TdkAccountPanel :session="session" :feed="feed"

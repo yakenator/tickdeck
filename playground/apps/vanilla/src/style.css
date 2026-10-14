@@ -123,10 +123,13 @@ input {
   flex: 1 1 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  grid-template-rows: minmax(360px, 1fr) auto;
+  /* The first row takes the rest of the window, and at least the taller of the chart's minimum and the side column. */
+  grid-template-rows: 1fr auto;
   grid-template-areas:
     'chart side'
     'panel panel';
+  /* Equal height: the chart and the side column share a row as tall as the taller of the two. */
+  align-items: stretch;
   gap: 8px;
   padding: 8px;
 }
@@ -136,6 +139,8 @@ input {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* A minimum, not a fixed height: the chart grows with a taller side column. */
+  min-height: 400px;
   border: 1px solid var(--tdk-color-border);
   border-radius: 4px;
   background: var(--tdk-color-surface);
@@ -143,8 +148,8 @@ input {
 }
 
 .chart {
-  flex: 1 1 auto;
-  min-height: 320px;
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .chart-status {
@@ -166,6 +171,11 @@ input {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+}
+
+/* The ticket takes the rest of the column, so its box ends at the chart's bottom. */
+.side tdk-order-ticket {
+  flex: 1;
 }
 
 .panel {

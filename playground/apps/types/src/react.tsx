@@ -1,8 +1,16 @@
 // Type-checks the React wrappers: props, event callbacks and element refs.
 import type { BrokerSession } from '@tickdeck/broker';
 import type { MarketFeed } from '@tickdeck/datafeed';
-import type { TdkAccountPanelElement, TdkOrderTicketElement } from '@tickdeck/elements';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons } from '@tickdeck/react';
+// The element types come from the wrapper, which re-exports them (0.1.0-alpha.2), not from @tickdeck/elements.
+import {
+  TdkAccountPanel,
+  TdkNotifications,
+  TdkOrderTicket,
+  TdkTradeButtons,
+  type TdkAccountPanelElement,
+  type TdkAmendDetail,
+  type TdkOrderTicketElement,
+} from '@tickdeck/react';
 import { useRef, type ReactElement } from 'react';
 
 export function Trading({ session, feed }: { session: BrokerSession; feed: MarketFeed }): ReactElement {
@@ -16,7 +24,8 @@ export function Trading({ session, feed }: { session: BrokerSession; feed: Marke
         ref={panel}
         session={session}
         feed={feed}
-        onAmend={(event) => void ticket.current?.amend(event.detail.order)}
+        timeZone="Asia/Seoul"
+        onAmend={(event: CustomEvent<TdkAmendDetail>) => void ticket.current?.amend(event.detail.order)}
         onEditExits={(event) => void panel.current?.activeController?.setPositionExits(event.detail.position.id, { takeProfit: null })}
       />
       <TdkNotifications session={session} feed={feed} placement="bottom-end" />

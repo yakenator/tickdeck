@@ -1,9 +1,17 @@
 import { BrokerSession, MockBroker, type BrokerPosition } from '@tickdeck/broker';
-import type { ChartView, TradingOverlay } from '@tickdeck/chart';
+import type { ChartView, TradingOverlay, VolumeMode } from '@tickdeck/chart';
 import { addExact, roundToTick, subtractExact } from '@tickdeck/core';
 import { MockFeed } from '@tickdeck/datafeed';
-import type { TdkAccountPanelElement, TdkOrderTicketElement } from '@tickdeck/elements';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons, VERSION } from '@tickdeck/react';
+// The element types come from the wrapper (re-exported since 0.1.0-alpha.2); @tickdeck/elements is only its dependency.
+import {
+  TdkAccountPanel,
+  TdkNotifications,
+  TdkOrderTicket,
+  TdkTradeButtons,
+  VERSION,
+  type TdkAccountPanelElement,
+  type TdkOrderTicketElement,
+} from '@tickdeck/react';
 import { useEffect, useRef, useState } from 'react';
 import { TradingChart } from './TradingChart';
 
@@ -26,6 +34,7 @@ export function App() {
   const [ready, setReady] = useState(false);
   const [instrument, setInstrument] = useState('MOCK:ACME');
   const [theme, setTheme] = useState<Theme>('light');
+  const [volume, setVolume] = useState<VolumeMode>('pane');
   const [editing, setEditing] = useState<BrokerPosition>();
   const ticket = useRef<TdkOrderTicketElement>(null);
   const panel = useRef<TdkAccountPanelElement>(null);
@@ -56,6 +65,11 @@ export function App() {
             </option>
           ))}
         </select>
+        <select id="volume" aria-label="Volume" value={volume} onChange={(event) => setVolume(event.target.value as VolumeMode)}>
+          <option value="pane">Volume: pane</option>
+          <option value="overlay">Volume: overlay</option>
+          <option value="none">Volume: none</option>
+        </select>
         <button className="button" type="button" aria-pressed={theme === 'dark'} onClick={toggleTheme}>
           Dark theme
         </button>
@@ -67,6 +81,7 @@ export function App() {
           session={session}
           instrument={instrument}
           theme={theme}
+          volume={volume}
           onCreated={(view, trading) => Object.assign(window.playground!, { view, trading })}
           onPickPrice={(price) => ticket.current?.usePrice(price)}
         />

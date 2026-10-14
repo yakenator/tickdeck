@@ -1,10 +1,14 @@
 // The P1 scenario on every web app (cdn, vanilla, react, vue): a limit buy with
 // take-profit and stop-loss from the ticket goes through fill, position and
 // take-profit, and every step shows up in the panel, on the chart and as a toast.
+// Along the way: the chart and the side column end at the same pixel (the
+// equal-height layout), and volume shows in its own pane below the prices.
 import { expect, test } from '@playwright/test';
 import {
   VERSION,
   chartLines,
+  expectEqualHeight,
+  expectVolumePane,
   fmt,
   moveMarket,
   orders,
@@ -34,6 +38,11 @@ test('limit buy with TP/SL from the ticket: placed, filled, closed at the take-p
     expect(problems).toEqual([]);
   });
 
+  await test.step('the chart and the side column end at the same pixel; volume has its own pane', async () => {
+    await expectEqualHeight(page, testInfo, 'as loaded');
+    await expectVolumePane(page, testInfo);
+  });
+
   // Pin the market to a known price. The levels stay on screen and well beyond
   // what the mock random walk moves during the test.
   const P0 = round2(await page.evaluate(() => (window as any).playground.view.bars.at(-1).close));
@@ -52,6 +61,8 @@ test('limit buy with TP/SL from the ticket: placed, filled, closed at the take-p
     await ticket.locator('[part~="stop-loss"] input[type="checkbox"]').check();
     await ticket.locator('#takeProfit-price').fill(fmt(TP));
     await ticket.locator('#stopLoss-price').fill(fmt(SL));
+    // The ticket grew with the exits; the row, and the chart, grow with it.
+    await expectEqualHeight(page, testInfo, 'ticket with TP/SL');
     await expect(ticket.locator('[part~="submit-button"]')).toHaveText(`Buy 10 ACME limit ${fmt(L)}`);
     await ticket.locator('[part~="submit-button"]').click();
     await expect.poll(async () => (await orders(page)).find((order) => !order.exitRole && order.limitPrice === L)?.state).toBe('open');

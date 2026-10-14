@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { BrokerSession, MockBroker, type BrokerPosition } from '@tickdeck/broker';
-import type { ChartView, TradingOverlay } from '@tickdeck/chart';
+import type { ChartView, TradingOverlay, VolumeMode } from '@tickdeck/chart';
 import { addExact, roundToTick, subtractExact } from '@tickdeck/core';
 import { MockFeed } from '@tickdeck/datafeed';
-import type { TdkAmendDetail, TdkEditExitsDetail } from '@tickdeck/elements';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons, VERSION } from '@tickdeck/vue';
+// The event detail types come from the wrapper (re-exported since 0.1.0-alpha.2); @tickdeck/elements is only its dependency.
+import {
+  TdkAccountPanel,
+  TdkNotifications,
+  TdkOrderTicket,
+  TdkTradeButtons,
+  VERSION,
+  type TdkAmendDetail,
+  type TdkEditExitsDetail,
+} from '@tickdeck/vue';
 import { ref, shallowRef } from 'vue';
 import TradingChart from './TradingChart.vue';
 
@@ -20,6 +28,7 @@ window.playground = { feed, session };
 type Theme = 'light' | 'dark';
 const instrument = ref('MOCK:ACME');
 const theme = ref<Theme>('light');
+const volume = ref<VolumeMode>('pane');
 const ticket = ref<InstanceType<typeof TdkOrderTicket>>();
 const panel = ref<InstanceType<typeof TdkAccountPanel>>();
 
@@ -83,6 +92,11 @@ function chartCreated(view: ChartView, trading: TradingOverlay): void {
       <select id="instrument" v-model="instrument" aria-label="Instrument">
         <option v-for="item in feed.instruments" :key="item.id" :value="item.id">{{ item.name }}</option>
       </select>
+      <select id="volume" v-model="volume" aria-label="Volume">
+        <option value="pane">Volume: pane</option>
+        <option value="overlay">Volume: overlay</option>
+        <option value="none">Volume: none</option>
+      </select>
       <button class="button" type="button" :aria-pressed="theme === 'dark'" @click="toggleTheme">Dark theme</button>
       <form id="market" class="market" autocomplete="off" @submit.prevent="moveMarket">
         <label class="hint" for="market-price">Simulated market</label>
@@ -96,6 +110,7 @@ function chartCreated(view: ChartView, trading: TradingOverlay): void {
         :session="session"
         :instrument="instrument"
         :theme="theme"
+        :volume="volume"
         @created="chartCreated"
         @pick-price="(price) => ticket?.element?.usePrice(price)"
       />

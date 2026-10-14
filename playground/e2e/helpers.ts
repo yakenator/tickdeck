@@ -129,3 +129,129 @@ export function panelSummary(page: Page) {
 export async function snapshot(page: Page, testInfo: TestInfo, name: string): Promise<void> {
   await testInfo.attach(name, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
 }
+
+/**
+ * Edges of the chart cell (`.chart-area` where the app frames the chart with a
+ * status line, else `#chart`), the chart drawn in it, the side column and the
+ * ticket's visible box (`::part(form)`), in viewport pixels.
+ */
+export function layoutEdges(page: Page) {
+  return page.evaluate(() => {
+    const box = (element: Element) => element.getBoundingClientRect();
+    const container = document.querySelector('#chart')!;
+    const cell = document.querySelector('.chart-area') ?? container;
+    const ticket = document.querySelector('tdk-order-ticket')!;
+    const column = ticket.parentElement!;
+    const form = ticket.shadowRoot!.querySelector('[part~="form"]')!;
+    const root = container.querySelector(':scope > [role="img"]')!;
+    const style = getComputedStyle(container);
+    return {
+      chartTop: box(cell).top,
+      chart: box(cell).bottom,
+      chartHeight: box(cell).height,
+      columnTop: box(column).top,
+      column: box(column).bottom,
+      ticket: box(form).bottom,
+      // The engine's root fills the chart container's content box.
+      drawn: box(root).bottom,
+      containerContent: box(container).bottom - parseFloat(style.borderBottomWidth) - parseFloat(style.paddingBottom),
+    };
+  });
+}
+
+/**
+ * The equal-height layout: the chart cell, the side column and the ticket's
+ * visible box end at the same pixel (±1), and the chart fills its container.
+ * Records the measurement as an annotation of the test.
+ */
+export async function expectEqualHeight(page: Page, testInfo: TestInfo, label: string): Promise<void> {
+  const worst = async () => {
+    const edges = await layoutEdges(page);
+    return Math.max(
+      Math.abs(edges.chartTop - edges.columnTop),
+      Math.abs(edges.chart - edges.column),
+      Math.abs(edges.chart - edges.ticket),
+      Math.abs(edges.drawn - edges.containerContent),
+    );
+  };
+  await expect.poll(worst, { message: `${label}: chart and side column end at the same pixel` }).toBeLessThanOrEqual(1);
+  const edges = await layoutEdges(page);
+  const round = (value: number) => Math.round(value * 10) / 10;
+  const description =
+    `${label}: chart ${round(edges.chartTop)}..${round(edges.chart)} (${round(edges.chartHeight)} px), column bottom ${round(edges.column)}, ` +
+    `ticket box bottom ${round(edges.ticket)}, drawn chart bottom ${round(edges.drawn)} of ${round(edges.containerContent)}`;
+  testInfo.annotations.push({ type: 'equal-height', description });
+}
+
+/**
+ * The chart's panes (the root's children that hold canvases: price, volume
+ * when it has its own pane, time axis) and how many pixels in the price and
+ * volume panes are volume bars. The canvases are transparent and volume bars
+ * are drawn in the `volumeUp` and `volumeDown` colors at half opacity, so they
+ * are the only half-transparent pixels of those colors.
+ */
+export function volumeLayout(page: Page) {
+  return page.evaluate(() => {
+    const view = (window as any).playground.view;
+    const root = document.querySelector('#chart > [role="img"]')!;
+    const panes = [...root.children].filter((child) => child.querySelector('canvas'));
+    // Pixels are read from a copy made for reading, so the chart's own canvases are never read back
+    // (Chrome warns about repeated readbacks of a canvas without willReadFrequently).
+    const scratch = document.createElement('canvas');
+    const reader = scratch.getContext('2d', { willReadFrequently: true })!;
+    const read = (source: HTMLCanvasElement) => {
+      scratch.width = source.width;
+      scratch.height = source.height;
+      reader.clearRect(0, 0, scratch.width, scratch.height);
+      reader.drawImage(source, 0, 0);
+      return reader.getImageData(0, 0, scratch.width, scratch.height).data;
+    };
+    const rgb = (color: string) => {
+      scratch.width = scratch.height = 1;
+      reader.clearRect(0, 0, 1, 1);
+      reader.fillStyle = color;
+      reader.fillRect(0, 0, 1, 1);
+      return [...reader.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+    };
+    const targets = [view.colors.value.volumeUp, view.colors.value.volumeDown].map(rgb);
+    const volumePixels = (pane: Element | undefined) => {
+      let count = 0;
+      for (const canvas of pane?.querySelectorAll('canvas') ?? []) {
+        if (canvas.width === 0 || canvas.height === 0) continue;
+        const data = read(canvas);
+        for (let index = 0; index < data.length; index += 4) {
+          const alpha = data[index + 3]!;
+          if (alpha < 96 || alpha > 160) continue;
+          if (targets.some(([r, g, b]) => Math.abs(data[index]! - r!) <= 12 && Math.abs(data[index + 1]! - g!) <= 12 && Math.abs(data[index + 2]! - b!) <= 12)) count += 1;
+        }
+      }
+      return count;
+    };
+    return {
+      mode: view.volume.value as string,
+      chartHeight: root.getBoundingClientRect().height,
+      panes: panes.map((pane) => pane.getBoundingClientRect().height),
+      pricePixels: volumePixels(panes[0]),
+      volumePixels: panes.length === 3 ? volumePixels(panes[1]) : 0,
+    };
+  });
+}
+
+/** Volume bars cover tens of thousands of pixels; the threshold leaves room for a narrow window. */
+export const VOLUME_DRAWN = 2000;
+
+/** Volume in its own pane below the prices: a fifth of the chart (at least 48 px) with the bars drawn in it. */
+export async function expectVolumePane(page: Page, testInfo: TestInfo): Promise<void> {
+  await expect.poll(async () => (await volumeLayout(page)).panes.length, { message: 'price, volume and time-axis panes' }).toBe(3);
+  await expect.poll(async () => (await volumeLayout(page)).volumePixels, { message: 'volume bars drawn in the volume pane' }).toBeGreaterThan(VOLUME_DRAWN);
+  const layout = await volumeLayout(page);
+  expect(layout.mode).toBe('pane');
+  const [, volumePane] = layout.panes;
+  expect(volumePane).toBeGreaterThanOrEqual(48);
+  expect(Math.abs(volumePane! - Math.max(48, Math.round(layout.chartHeight * 0.2)))).toBeLessThanOrEqual(2);
+  expect(layout.pricePixels).toBeLessThan(VOLUME_DRAWN / 10);
+  testInfo.annotations.push({
+    type: 'volume',
+    description: `volume pane ${Math.round(volumePane!)} px of ${Math.round(layout.chartHeight)} px, ${layout.volumePixels} volume-bar pixels`,
+  });
+}

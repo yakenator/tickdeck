@@ -75,6 +75,8 @@ input {
   grid-template-areas:
     'chart side'
     'panel panel';
+  /* Equal height: the chart and the side column share a row as tall as the taller of the two. */
+  align-items: stretch;
   gap: 8px;
   padding: 8px;
 }
@@ -82,7 +84,8 @@ input {
 .chart {
   grid-area: chart;
   min-width: 0;
-  height: 460px;
+  /* A minimum, not a fixed height: the chart grows with a taller side column. */
+  min-height: 460px;
   border: 1px solid var(--tdk-color-border);
   border-radius: 4px;
   overflow: hidden;
@@ -94,6 +97,11 @@ input {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+}
+
+/* The ticket takes the rest of the column, so its box ends at the chart's bottom. */
+.side tdk-order-ticket {
+  flex: 1;
 }
 
 .panel {

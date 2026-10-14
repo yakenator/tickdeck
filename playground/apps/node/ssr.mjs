@@ -40,12 +40,38 @@ await check('import @tickdeck/all', async () => {
   return `VERSION ${all.VERSION}`;
 });
 
-// Rich props (session, feed) are element properties, assigned in the browser
-// after hydration; on the server only the simple attributes are rendered.
+await check('resolve @tickdeck/all/cdn and import @tickdeck/all/package.json', async () => {
+  // The CDN bundle by package path is the file jsDelivr serves. It is a browser module (it defines the
+  // elements against the DOM's HTMLElement), so it is resolved here, not imported; the browser apps load it.
+  const cdn = import.meta.resolve('@tickdeck/all/cdn');
+  assert.match(cdn, /\/@tickdeck\/all\/dist\/tickdeck\.js$/);
+  assert.equal(import.meta.resolve('@tickdeck/all/dist/tickdeck.js'), cdn);
+  const { default: manifest } = await import('@tickdeck/all/package.json', { with: { type: 'json' } });
+  assert.equal(manifest.version, expected);
+  return `cdn -> ${cdn.slice(cdn.indexOf('@tickdeck/'))}, package.json ${manifest.version}`;
+});
+
+// Simple props (strings, numbers, booleans) are rendered as the element's
+// attributes, so the server HTML is meaningful; rich props (session, feed)
+// are element properties, assigned in the browser after hydration.
 const { BrokerSession, MockBroker } = await import('@tickdeck/broker');
 const { MockFeed } = await import('@tickdeck/datafeed');
 const feed = new MockFeed({ autoTick: false });
 const session = new BrokerSession(new MockBroker({ feed }));
+
+/** The start tag of `tag` in `html`, with its attributes by name. */
+function attributes(html, tag) {
+  const start = html.match(new RegExp(`<${tag}(\\s[^>]*)?>`));
+  assert.ok(start, `<${tag}> is rendered`);
+  return Object.fromEntries([...(start[1] ?? '').matchAll(/([\w-]+)(?:="([^"]*)")?/g)].map(([, name, value]) => [name, value ?? '']));
+}
+
+/** Simple props as attributes (true as an empty attribute, false left out), rich props not at all. */
+function assertAttributes(html) {
+  assert.deepEqual(attributes(html, 'tdk-trade-buttons'), { instrument: 'MOCK:ACME', quantity: '10' });
+  assert.deepEqual(attributes(html, 'tdk-order-ticket'), { class: 'ticket', instrument: 'MOCK:ACME', kind: 'limit', 'check-orders': '' });
+  assert.deepEqual(attributes(html, 'tdk-account-panel'), { 'time-zone': 'Asia/Seoul' });
+}
 
 await check('React renderToString of @tickdeck/react wrappers', async () => {
   const { createElement } = await import('react');
@@ -56,16 +82,12 @@ await check('React renderToString of @tickdeck/react wrappers', async () => {
     createElement(
       'main',
       null,
-      createElement(TdkTradeButtons, { session, feed, instrument: 'MOCK:ACME', quantity: 10 }),
-      createElement(TdkOrderTicket, { session, feed, instrument: 'MOCK:ACME', kind: 'limit', className: 'ticket' }),
-      createElement(TdkAccountPanel, { session, feed, onAmend: () => {} }),
+      createElement(TdkTradeButtons, { session, feed, instrument: 'MOCK:ACME', quantity: 10, confirm: false }),
+      createElement(TdkOrderTicket, { session, feed, instrument: 'MOCK:ACME', kind: 'limit', checkOrders: true, className: 'ticket' }),
+      createElement(TdkAccountPanel, { session, feed, timeZone: 'Asia/Seoul', onAmend: () => {} }),
     ),
   );
-  // Every prop, simple ones included, is applied as a property after hydration,
-  // so the server HTML carries the tags and HTML attributes such as class.
-  assert.match(html, /<tdk-trade-buttons[^>]*>/);
-  assert.match(html, /<tdk-order-ticket class="ticket"[^>]*>/);
-  assert.match(html, /<tdk-account-panel[^>]*>/);
+  assertAttributes(html);
   assert.doesNotMatch(html, /\[object Object\]/, 'objects are not rendered as attributes');
   return html;
 });
@@ -79,15 +101,13 @@ await check('Vue renderToString of @tickdeck/vue wrappers', async () => {
   const app = createSSRApp({
     render: () =>
       h('main', [
-        h(TdkTradeButtons, { ...raw, instrument: 'MOCK:ACME', quantity: 10 }),
-        h(TdkOrderTicket, { ...raw, instrument: 'MOCK:ACME', kind: 'limit', class: 'ticket' }),
-        h(TdkAccountPanel, { ...raw, onAmend: () => {} }),
+        h(TdkTradeButtons, { ...raw, instrument: 'MOCK:ACME', quantity: 10, confirm: false }),
+        h(TdkOrderTicket, { ...raw, instrument: 'MOCK:ACME', kind: 'limit', checkOrders: true, class: 'ticket' }),
+        h(TdkAccountPanel, { ...raw, timeZone: 'Asia/Seoul', onAmend: () => {} }),
       ]),
   });
   const html = await renderToString(app);
-  assert.match(html, /<tdk-trade-buttons[^>]*>/);
-  assert.match(html, /<tdk-order-ticket class="ticket"[^>]*>/);
-  assert.match(html, /<tdk-account-panel[^>]*>/);
+  assertAttributes(html);
   assert.doesNotMatch(html, /\[object Object\]/, 'objects are not rendered as attributes');
   return html;
 });

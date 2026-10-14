@@ -30,14 +30,14 @@ for (const widget of [buttons, ticket, panel, notifications]) {
   widget.session = session;
   widget.feed = feed;
 }
-const view = createChartView(chart, { feed, instrument: 'MOCK:ACME', timeframe: '1m' });
+const view = createChartView(chart, { feed, instrument: 'MOCK:ACME', timeframe: '1m', volume: 'pane' });
 attachTrading(view, session);
 
 // "Modify" in the account panel opens the order in the ticket.
 panel.addEventListener('tdk-amend', ({ detail: { order } }) => ticket.amend(order));
 ```
 
-[`src/main.ts`](src/main.ts) adds the rest of the recipes from `examples/README.md`: switching the instrument everywhere, Alt-click a chart price into the ticket, a take-profit and stop-loss dialog for positions ([`src/exits-dialog.ts`](src/exits-dialog.ts)), errors from chart gestures, theme switching and a simulated market control.
+[`src/style.css`](src/style.css) lays the chart and the side column out with the equal-height pattern (a stretched grid row, a `min-height` on the chart cell, the ticket with `flex: 1` in a flex column), so both end at the same line. [`src/main.ts`](src/main.ts) adds the rest of the recipes from `examples/README.md`: volume in its own pane, as an overlay or hidden, switching the instrument everywhere, Alt-click a chart price into the ticket, a take-profit and stop-loss dialog for positions ([`src/exits-dialog.ts`](src/exits-dialog.ts)), errors from chart gestures, theme switching and a simulated market control.
 
 ```sh
 npm run dev --workspace apps/vanilla     # from playground/

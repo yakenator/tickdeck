@@ -79,17 +79,23 @@
       input {
         width: 100px;
       }
+      /*
+       * Equal height: the chart and the side column share a row as tall as the taller of the two.
+       * The chart cell has a minimum, not a fixed height, so it grows with a taller column, and the
+       * ticket takes the rest of the column, so its box ends at the chart's bottom.
+       */
       main {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 320px;
         grid-template-areas: 'chart side' 'panel panel';
+        align-items: stretch;
         gap: 8px;
         padding: 8px;
       }
       #chart {
         grid-area: chart;
         min-width: 0;
-        height: 440px;
+        min-height: 440px;
         border: 1px solid var(--tdk-color-border);
         border-radius: 4px;
         overflow: hidden;
@@ -100,6 +106,9 @@
         flex-direction: column;
         gap: 8px;
         min-width: 0;
+      }
+      aside tdk-order-ticket {
+        flex: 1;
       }
       tdk-account-panel {
         grid-area: panel;
@@ -157,7 +166,8 @@
       const session = new BrokerSession(new MockBroker({ feed }));
       await session.start();
 
-      const view = createChartView(document.getElementById('chart'), { feed, instrument: 'MOCK:ACME', timeframe: '1m' });
+      // Volume in its own pane below the prices (the default; 'overlay' or 'none' are the alternatives).
+      const view = createChartView(document.getElementById('chart'), { feed, instrument: 'MOCK:ACME', timeframe: '1m', volume: 'pane' });
       const trading = attachTrading(view, session, { pnl: ['money', 'ticks'] });
 
       for (const element of document.querySelectorAll('tdk-trade-buttons, tdk-order-ticket, tdk-account-panel, tdk-notifications')) {

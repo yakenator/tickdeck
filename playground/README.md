@@ -12,8 +12,8 @@ Hosted build: <https://yakenator.github.io/tickdeck/> (once GitHub Pages is enab
 |---|---|---|
 | [`apps/cdn`](apps/cdn) | `<script type="module">` from jsDelivr, no build | Chart, ticket, trade buttons, account panel and notifications in one static HTML page |
 | [`apps/vanilla`](apps/vanilla) | Web Components from npm, bundled with Vite | The full trading screen with every integration recipe from `examples/` |
-| [`apps/react`](apps/react) | `@tickdeck/react` with React 19 | The same screen; the chart is created in an effect |
-| [`apps/vue`](apps/vue) | `@tickdeck/vue` with Vue 3 | The same screen; the chart is created in `onMounted` |
+| [`apps/react`](apps/react) | `@tickdeck/react` with React 19 | The same screen; the chart is created in an effect, the element types come from the wrapper |
+| [`apps/vue`](apps/vue) | `@tickdeck/vue` with Vue 3 | The same screen; the chart is created in `onMounted`, the event types come from the wrapper |
 | [`apps/node`](apps/node) | Headless `core`, `datafeed`, `broker` | A strategy script (bracket order, fill, take-profit) and an import and SSR check for the browser packages and wrappers |
 | [`apps/types`](apps/types) | TypeScript | Type checks with `bundler`, `nodenext` and `node16` resolution and `skipLibCheck: false` |
 | [`storybook`](storybook) | Storybook 10 for Web Components | Every element and the chart in deterministic states; each story is an interaction and accessibility test |
@@ -55,13 +55,14 @@ npm run preview                   # serves dist-site/ at http://127.0.0.1:4310/t
 [`e2e/trading.spec.ts`](e2e/trading.spec.ts) runs on `cdn`, `vanilla`, `react` and `vue`:
 
 1. The page loads the pinned version (`#version`), defines every `tdk-*` element and logs no console errors or warnings.
-2. A limit buy of 10 with take-profit and stop-loss is entered in the ticket with the mouse and keyboard and submitted.
-3. The order and its two held exits appear in the account panel and as chart lines.
-4. The "Simulated market" control moves the mock market through the limit: the entry fills and a toast says so.
-5. The position shows in the panel and on the chart, with live P&L.
-6. The market reaches the take-profit: the position closes, the stop-loss is cancelled, a toast reports the P&L and the panel shows it as realized.
+2. The chart and the side column end at the same pixel (±1): the chart cell, the chart drawn in it, the column and the ticket's visible box (`::part(form)`), in the equal-height layout every app uses (a stretched grid row, `min-height` on the chart cell, the ticket at `flex: 1`). Volume has its own pane below the prices, a fifth of the chart, with the bars drawn in it.
+3. A limit buy of 10 with take-profit and stop-loss is entered in the ticket with the mouse and keyboard and submitted; with the exits the column is taller, and the chart still ends with it.
+4. The order and its two held exits appear in the account panel and as chart lines.
+5. The "Simulated market" control moves the mock market through the limit: the entry fills and a toast says so.
+6. The position shows in the panel and on the chart, with live P&L.
+7. The market reaches the take-profit: the position closes, the stop-loss is cancelled, a toast reports the P&L and the panel shows it as realized.
 
-[`e2e/recipes.spec.ts`](e2e/recipes.spec.ts) checks the integrations each app wires itself (vanilla, React, Vue): Alt-click a chart price into the ticket, one instrument for chart, ticket and buttons, Modify on an order of another instrument, and TP/SL on a position. The `site` project checks the landing page ([`e2e/landing.spec.ts`](e2e/landing.spec.ts)) and the hosted Storybook ([`e2e/storybook-site.spec.ts`](e2e/storybook-site.spec.ts)). The HTML report with screenshots of each step is written to `e2e-report/html/`.
+[`e2e/recipes.spec.ts`](e2e/recipes.spec.ts) checks the integrations each app wires itself (vanilla, React, Vue): Alt-click a chart price into the ticket, one instrument for chart, ticket and buttons, Modify on an order of another instrument, TP/SL on a position, and the volume control (its own pane, an overlay, none). The layout and volume measurements are attached to each test as annotations in the report. The `site` project checks the landing page ([`e2e/landing.spec.ts`](e2e/landing.spec.ts)) and the hosted Storybook ([`e2e/storybook-site.spec.ts`](e2e/storybook-site.spec.ts)). The HTML report with screenshots of each step is written to `e2e-report/html/`.
 
 The CDN test loads tickdeck from jsDelivr, so it needs network access.
 
@@ -74,16 +75,17 @@ npm run storybook        # browse at http://localhost:6006
 npm run test:storybook   # run every story as a test
 ```
 
-Every story is also a test: it renders in Chromium through Vitest's browser mode, runs its `play` function (placing and cancelling orders, one-click trades, keyboard use, notifications on fills) and then the axe accessibility checks, which fail the story on any violation. Known issues in the published components are excluded node by node and listed in [`storybook/README.md`](storybook/README.md). Storybook follows `tickdeck.version` like the apps, so `update.mjs` re-runs it on every release, and the hosted site serves it at `/tickdeck/storybook/`.
+Every story is also a test: it renders in Chromium through Vitest's browser mode, runs its `play` function (placing and cancelling orders, one-click trades, keyboard use, notifications on fills, the equal-height layout, volume, time zones, connecting and failed starts) and then the axe accessibility checks, which fail the story on any violation. Nothing is excluded since 0.1.0-alpha.2, which fixed the five issues 0.1.0-alpha.1 needed exclusions for (listed in [`storybook/README.md`](storybook/README.md)). Storybook follows `tickdeck.version` like the apps, so `update.mjs` re-runs it on every release, and the hosted site serves it at `/tickdeck/storybook/`.
 
 ## After each release
 
 ```sh
 node playground/scripts/update.mjs 0.1.0-alpha.2   # a version, or a dist-tag: latest, alpha
+# optional: --note "<text>" adds a remark to the RESULTS.md row (repeatable)
 git add playground && git commit -m "chore(playground): verify tickdeck 0.1.0-alpha.2"
 ```
 
-[`scripts/update.mjs`](scripts/update.mjs) resolves the version (`latest` is `npm view @tickdeck/all version`; any other non-version argument is read as a dist-tag), writes `tickdeck.version`, updates every app's dependencies, the CDN URL and the snippets, runs `npm install`, runs every check, and appends a row to [`RESULTS.md`](RESULTS.md) with the UTC date, the version, pass or fail for each check (install, build, type check, Node, Storybook, each app's browser run and the hosted site) and notes. It exits non-zero when anything failed. Commit `RESULTS.md` with the version bump, whatever the outcome.
+[`scripts/update.mjs`](scripts/update.mjs) resolves the version (`latest` is `npm view @tickdeck/all version`; any other non-version argument is read as a dist-tag), writes `tickdeck.version`, updates every app's dependencies, the CDN URL and the snippets, runs `npm install`, runs every check, and appends a row to [`RESULTS.md`](RESULTS.md) with the UTC date, the version, pass or fail for each check (install, build, type check, Node, Storybook, each app's browser run and the hosted site) and notes: the previous version, any `--note` texts, the Storybook count and every failure. It exits non-zero when anything failed. Commit `RESULTS.md` with the version bump, whatever the outcome.
 
 While the repository is in Changesets pre mode, new prereleases are published under the `alpha` dist-tag, and `latest` only moves when a version is published with that tag. Use `update.mjs alpha` to follow the prereleases.
 

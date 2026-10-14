@@ -37,10 +37,11 @@ tickdeck 0.1.0-alpha.1: headless bracket order on MOCK:ACME
 ## [`ssr.mjs`](ssr.mjs): imports and server-side rendering
 
 - `@tickdeck/chart`, `@tickdeck/elements` (and `/define`) and `@tickdeck/all` import in Node without a DOM.
+- `@tickdeck/all/cdn` and `@tickdeck/all/dist/tickdeck.js` resolve to the CDN bundle, and `@tickdeck/all/package.json` imports as JSON. The CDN bundle itself is a browser module (it defines the elements on the DOM's `HTMLElement`), so it is only resolved here.
 - `renderToString` from `react-dom/server` renders the `@tickdeck/react` wrappers, and `renderToString` from `vue/server-renderer` renders the `@tickdeck/vue` wrappers, with no objects leaking into attributes.
 
-The wrappers apply every prop as an element property once the page hydrates, so the server HTML holds the bare tags plus HTML attributes such as `class`:
+Since 0.1.0-alpha.2 the wrappers render simple props (strings, numbers, booleans) as the element's attributes, `true` as an empty attribute and `false` not at all; rich props such as `session` and `feed` are set as properties once the page hydrates. The checks assert the exact attributes:
 
 ```html
-<main><tdk-trade-buttons></tdk-trade-buttons><tdk-order-ticket class="ticket"></tdk-order-ticket><tdk-account-panel></tdk-account-panel></main>
+<main><tdk-trade-buttons instrument="MOCK:ACME" quantity="10"></tdk-trade-buttons><tdk-order-ticket class="ticket" instrument="MOCK:ACME" kind="limit" check-orders=""></tdk-order-ticket><tdk-account-panel time-zone="Asia/Seoul"></tdk-account-panel></main>
 ```

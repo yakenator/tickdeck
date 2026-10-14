@@ -1,5 +1,5 @@
 import type { BrokerSession } from '@tickdeck/broker';
-import { attachTrading, createChartView, type ChartView, type TradingOverlay } from '@tickdeck/chart';
+import { attachTrading, createChartView, type ChartView, type TradingOverlay, type VolumeMode } from '@tickdeck/chart';
 import type { MarketFeed } from '@tickdeck/datafeed';
 import { useEffect, useRef } from 'react';
 
@@ -8,6 +8,8 @@ interface TradingChartProps {
   session: BrokerSession;
   instrument: string;
   theme: 'light' | 'dark';
+  /** Volume in its own pane below the prices, at the bottom of the price pane, or not at all. */
+  volume: VolumeMode;
   /** Called once the view and its trading overlay exist. */
   onCreated?: (view: ChartView, trading: TradingOverlay) => void;
   /** Alt-click (Option-click) on a price. */
@@ -15,13 +17,13 @@ interface TradingChartProps {
 }
 
 /** `createChartView` plus `attachTrading`, created in an effect and disposed with the component. */
-export function TradingChart({ feed, session, instrument, theme, onCreated, onPickPrice }: TradingChartProps) {
+export function TradingChart({ feed, session, instrument, theme, volume, onCreated, onPickPrice }: TradingChartProps) {
   const container = useRef<HTMLDivElement>(null);
   const view = useRef<ChartView | undefined>(undefined);
   const pressedAt = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    const created = createChartView(container.current!, { feed, instrument, timeframe: '1m', theme });
+    const created = createChartView(container.current!, { feed, instrument, timeframe: '1m', theme, volume });
     const trading = attachTrading(created, session, { pnl: ['money', 'ticks'] });
     view.current = created;
     onCreated?.(created, trading);
@@ -35,6 +37,10 @@ export function TradingChart({ feed, session, instrument, theme, onCreated, onPi
   useEffect(() => {
     if (view.current && view.current.instrument.value !== instrument) view.current.setInstrument(instrument).catch(() => {});
   }, [instrument]);
+
+  useEffect(() => {
+    if (view.current && view.current.volume.value !== volume) view.current.setVolume(volume);
+  }, [volume]);
 
   useEffect(() => {
     // The page switched its --tdk-* tokens before this runs; setTheme reads them again.

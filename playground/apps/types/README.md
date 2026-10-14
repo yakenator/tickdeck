@@ -28,8 +28,8 @@ npm install -D typescript @types/react
 The packages are ES modules only (`"type": "module"`, an `import` condition in `exports`), so under `node16` and `nodenext` the consuming files must be ES modules too: this package sets `"type": "module"`. The chart and elements declarations use DOM types, so include the `DOM` lib.
 
 - [`src/consumer.ts`](src/consumer.ts): core, datafeed, broker (a custom connector implementing `BrokerConnector`), chart, widgets-core, elements (including the `HTMLElementTagNameMap` entries) and `@tickdeck/all`.
-- [`src/react.tsx`](src/react.tsx): wrapper props, event callbacks and element refs.
-- [`src/vue.ts`](src/vue.ts): wrapper props, emits and the exposed `element`.
+- [`src/react.tsx`](src/react.tsx): wrapper props (`timeZone` included), event callbacks and element refs, with the element and event types imported from `@tickdeck/react`.
+- [`src/vue.ts`](src/vue.ts): wrapper props, emits and the exposed `element`, with the types imported from `@tickdeck/vue`.
 
 ```sh
 npm run typecheck --workspace apps/types     # from playground/

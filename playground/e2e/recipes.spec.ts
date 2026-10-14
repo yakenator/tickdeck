@@ -1,8 +1,9 @@
 // The integrations an application wires itself (examples/README.md), on the
 // vanilla, React and Vue apps: Alt-click a chart price into the ticket,
-// instrument sync, Modify from the panel, and TP/SL editing on a position.
+// instrument sync, Modify from the panel, TP/SL editing on a position, and the
+// volume control.
 import { expect, test } from '@playwright/test';
-import { chartLines, fmt, positions, round2, selectTab, ticketState, waitForApp, watchConsole } from './helpers';
+import { VOLUME_DRAWN, chartLines, fmt, positions, round2, selectTab, ticketState, volumeLayout, waitForApp, watchConsole } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./');
@@ -78,4 +79,25 @@ test('TP/SL in the account panel edits the position exits; the chart draws them'
     .poll(async () => (await chartLines(page)).map((line) => `${line.kind}:${line.price}`).join())
     .toBe(`position:${position!.averagePrice},take-profit:${takeProfit},stop-loss:${stopLoss}`);
   await expect(page.locator(`tdk-account-panel tr[data-id="${position!.id}"] td[data-column="take-profit"]`)).toHaveText(fmt(takeProfit));
+});
+
+test('the volume control moves volume between its own pane, an overlay and none', async ({ page }) => {
+  const problems = watchConsole(page);
+  const layout = () => volumeLayout(page);
+  await expect.poll(async () => (await layout()).panes.length).toBe(3);
+
+  await page.locator('#volume').selectOption('overlay');
+  // Price and time axis only, the volume bars at the bottom of the price pane.
+  await expect.poll(async () => (await layout()).panes.length).toBe(2);
+  await expect.poll(async () => (await layout()).pricePixels).toBeGreaterThan(VOLUME_DRAWN);
+
+  await page.locator('#volume').selectOption('none');
+  await expect.poll(async () => (await layout()).mode).toBe('none');
+  await expect.poll(async () => (await layout()).pricePixels).toBeLessThan(VOLUME_DRAWN / 10);
+  expect((await layout()).panes).toHaveLength(2);
+
+  await page.locator('#volume').selectOption('pane');
+  await expect.poll(async () => (await layout()).panes.length).toBe(3);
+  await expect.poll(async () => (await layout()).volumePixels).toBeGreaterThan(VOLUME_DRAWN);
+  expect(problems).toEqual([]);
 });

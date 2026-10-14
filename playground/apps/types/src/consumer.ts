@@ -11,7 +11,7 @@ import {
   type OrderRequest,
   type TradingRules,
 } from '@tickdeck/broker';
-import { attachTrading, createChartView, type ChartView, type TradingLine, type TradingOverlay } from '@tickdeck/chart';
+import { attachTrading, createChartView, type ChartView, type TradingLine, type TradingOverlay, type VolumeMode } from '@tickdeck/chart';
 import { ObservableValue, addExact, formatDecimal, roundToTick, type Instrument, type Quote, type Side } from '@tickdeck/core';
 import { HttpPollingFeed, MockFeed, parseTimeframe, type MarketFeed } from '@tickdeck/datafeed';
 import { TdkOrderTicketElement, type TdkAmendDetail, type TdkTheme } from '@tickdeck/elements';
@@ -91,8 +91,12 @@ async function bracket(): Promise<string> {
 
 // ----- chart -----------------------------------------------------------------
 function mountChart(container: HTMLElement): { view: ChartView; trading: TradingOverlay } {
-  const view = createChartView(container, { feed, instrument: 'MOCK:ACME', timeframe: '1m', theme: 'dark', style: 'area' });
-  const trading = attachTrading(view, simulated, { pnl: ['money', 'ticks'] });
+  const volume: VolumeMode = 'pane';
+  const view = createChartView(container, { feed, instrument: 'MOCK:ACME', timeframe: '1m', theme: 'dark', style: 'area', volume });
+  view.setVolume('overlay');
+  const shown: VolumeMode = view.volume.value;
+  void shown;
+  const trading = attachTrading(view, simulated, { pnl: ['money', 'ticks'], autoscaleTradingLines: false });
   const lines: readonly TradingLine[] = trading.scene.value.lines;
   void lines;
   view.crosshair.subscribe((point) => void point?.price);
@@ -113,6 +117,8 @@ function wireTicket(): void {
   ticket.session = simulated;
   ticket.feed = feed;
   ticket.theme = 'dark' satisfies TdkTheme;
+  ticket.timeZone = 'America/New_York';
+  ticket.scheduler = { now: () => Date.now(), setTimeout: (callback, delayMs) => setTimeout(callback, delayMs), clearTimeout: (handle) => clearTimeout(handle as number) };
   ticket.usePrice(101.25);
   panel.addEventListener('tdk-amend', (event: CustomEvent<TdkAmendDetail>) => void ticket.amend(event.detail.order));
 }
