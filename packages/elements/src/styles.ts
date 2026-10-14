@@ -94,6 +94,8 @@ export const baseStyles = css`
   :host {
     display: block;
     box-sizing: border-box;
+    /* Lets the element shrink inside grid and flex layouts; wide tables scroll inside it. */
+    min-width: 0;
     font-family: var(--_font);
     font-size: var(--_fs-2);
     line-height: 1.4;

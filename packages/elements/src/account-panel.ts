@@ -46,7 +46,7 @@ const FILTERS: readonly { value: OrderFilter; label: string }[] = [
 export class TdkAccountPanelElement extends TdkWidgetElement<AccountPanelController> {
   static override properties = {
     ...TdkWidgetElement.properties,
-    tab: { reflect: true },
+    tab: {},
     orderFilter: { attribute: 'order-filter' },
   };
 

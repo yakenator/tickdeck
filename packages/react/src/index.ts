@@ -25,6 +25,7 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useRef,
+  version as reactVersion,
   type ForwardRefExoticComponent,
   type HTMLAttributes,
   type PropsWithoutRef,
@@ -36,6 +37,8 @@ import { version } from '../package.json';
 export const VERSION: string = version;
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+// React 18 passes `className` to custom elements as an attribute named `className`.
+const LEGACY_CLASS_NAME = Number.parseInt(reactVersion, 10) < 19;
 
 type Handler<D> = (event: CustomEvent<D>) => void;
 
@@ -83,6 +86,7 @@ function createWrapper<E extends HTMLElement, P extends object>(
     for (const [name, value] of Object.entries(props)) {
       if (properties.has(name)) values[name] = value;
       else if (name in spec.events) callbacks[name] = value;
+      else if (name === 'className' && LEGACY_CLASS_NAME) passthrough.class = value;
       else passthrough[name] = value;
     }
     handlers.current = callbacks;

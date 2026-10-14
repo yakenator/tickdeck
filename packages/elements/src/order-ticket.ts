@@ -427,6 +427,7 @@ export class TdkOrderTicketElement extends TdkWidgetElement<OrderTicketControlle
             −
           </button>
           ${this.#numberInput(state, 'quantity', state.quantity, instrument.quantityPrecision, (value) => controller.setQuantity(value), {
+            part: 'quantity-input',
             disabled: !state.editable.quantity,
             onStep: (steps) => controller.stepQuantity(steps),
           })}
@@ -463,13 +464,13 @@ export class TdkOrderTicketElement extends TdkWidgetElement<OrderTicketControlle
     value: number | undefined,
     decimals: number,
     onValue: (value: number | undefined) => void,
-    options: { disabled?: boolean; onStep?: (steps: number) => void; label?: string; errorField?: TicketField },
+    options: { part: string; disabled?: boolean; onStep?: (steps: number) => void; label?: string; errorField?: TicketField },
   ): TemplateResult {
     const error = state.visibleErrors[options.errorField ?? (field as TicketField)];
     return html`<input
       id=${field}
       class="field num"
-      part="input ${field}-input"
+      part="input ${options.part}"
       inputmode="decimal"
       autocomplete="off"
       spellcheck="false"
@@ -507,6 +508,7 @@ export class TdkOrderTicketElement extends TdkWidgetElement<OrderTicketControlle
     return html`<div class="row" part="field ${field === 'limitPrice' ? 'limit' : 'stop'}-field">
       <label for=${field}>${label}</label>
       ${this.#numberInput(state, field, value, decimals, (price) => (field === 'limitPrice' ? controller.setLimitPrice(price) : controller.setStopPrice(price)), {
+        part: field === 'limitPrice' ? 'limit-price-input' : 'stop-price-input',
         disabled: state.busy,
         onStep: (steps) => controller.stepPrice(field, steps),
       })}
@@ -608,6 +610,7 @@ export class TdkOrderTicketElement extends TdkWidgetElement<OrderTicketControlle
                   draft.mode === 'price' ? decimals : 0,
                   (value) => (draft.mode === 'price' ? controller.setExitPrice(field, value) : controller.setExitTicks(field, value)),
                   {
+                    part: field === 'takeProfit' ? 'take-profit-input' : 'stop-loss-input',
                     disabled: !state.editable.exits,
                     label: `${label} ${draft.mode === 'price' ? 'price' : 'distance in ticks'}`,
                     errorField: field,
