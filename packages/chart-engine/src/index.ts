@@ -22,6 +22,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified by tickdeck contributors.
  */
 
 import ChartImp, { type Chart, type DomPosition, type YAxisFilter } from './Chart'
@@ -80,15 +81,15 @@ function init(ds: HTMLElement | string, options?: Options): Nullable<Chart> {
     logError('', '', 'The chart cannot be initialized correctly. Please check the parameters. The chart container cannot be null and child elements need to be added!!!')
     return null
   }
-  let chart = charts.get(dom.getAttribute('k-line-chart-id') ?? '')
+  let chart = charts.get(dom.getAttribute('data-tdk-chart-id') ?? '')
   if (isValid(chart)) {
     logWarn('', '', 'The chart has been initialized on the dom！！！')
     return chart
   }
-  const id = `k_line_chart_${chartBaseId++}`
+  const id = `tdk_chart_${chartBaseId++}`
   chart = new ChartImp(dom, options)
   chart.id = id
-  dom.setAttribute('k-line-chart-id', id)
+  dom.setAttribute('data-tdk-chart-id', id)
   charts.set(id, chart)
   return chart
 }
@@ -108,7 +109,7 @@ function dispose(dcs: HTMLElement | Chart | string): void {
     } else {
       dom = dcs as HTMLElement
     }
-    id = dom?.getAttribute('k-line-chart-id') ?? null
+    id = dom?.getAttribute('data-tdk-chart-id') ?? null
   }
   if (id !== null) {
     charts.get(id)?.destroy()
