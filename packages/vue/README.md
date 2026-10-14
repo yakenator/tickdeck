@@ -44,7 +44,7 @@ const amend = ({ order }: TdkAmendDetail) => ticket.value?.element?.amend(order)
 
 Keep sessions, feeds and controllers out of deep reactivity (`shallowRef` or `markRaw`): they hold private state that Vue proxies cannot reach. The components unwrap proxies before handing objects to the elements, so a `reactive()` object still works, but raw objects avoid needless proxying.
 
-Emits carry the event detail. The cancelable account panel events (`cancel-order`, `close-position`, `reverse-position`) also pass the `CustomEvent` as a second argument; call `preventDefault()` on it to stop the action. Each component exposes `element`, a ref to the custom element (for example `element.amend(order)` on the ticket).
+Emits carry the event detail. The cancelable account panel events (`cancel-order`, `close-position`, `reverse-position`) also pass the `CustomEvent` as a second argument; call `preventDefault()` on it to stop the action. Each component exposes `element`, the custom element once mounted (for example `element.amend(order)` or `element.usePrice(price)` on the ticket). It is typed on the instance, so `ref<InstanceType<typeof TdkOrderTicket>>()` sees it.
 
 ## Components
 

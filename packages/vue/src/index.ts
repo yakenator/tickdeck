@@ -23,6 +23,14 @@ import { version } from '../package.json';
 
 export const VERSION: string = version;
 
+/**
+ * A wrapper's type with the exposed `element` (the custom element, once
+ * mounted) on its instance, so `ref<InstanceType<typeof TdkOrderTicket>>()`
+ * sees `element`.
+ */
+type WithElement<C, E extends HTMLElement> = C &
+  (new (...args: any[]) => (C extends new (...args: any[]) => infer I ? I : never) & { readonly element: E | undefined });
+
 /** Unwraps Vue proxies: controllers and sessions keep private fields that proxies cannot reach. */
 const raw = <T>(value: T): T => (value !== null && typeof value === 'object' ? toRaw(value) : value);
 
@@ -46,8 +54,7 @@ const commonProps = <E extends { controller?: unknown; session?: unknown; feed?:
   theme: String as PropType<TdkTheme>,
 });
 
-/** Orders, positions and fills with an account summary (`<tdk-account-panel>`). Events carry the detail. */
-export const TdkAccountPanel = defineComponent({
+const TdkAccountPanelComponent = defineComponent({
   name: 'TdkAccountPanel',
   props: {
     ...commonProps<TdkAccountPanelElement>(),
@@ -94,8 +101,10 @@ export const TdkAccountPanel = defineComponent({
   },
 });
 
-/** Order entry (`<tdk-order-ticket>`). The exposed `element` has `amend(order)`. */
-export const TdkOrderTicket = defineComponent({
+/** Orders, positions and fills with an account summary (`<tdk-account-panel>`). Events carry the detail. */
+export const TdkAccountPanel = TdkAccountPanelComponent as WithElement<typeof TdkAccountPanelComponent, TdkAccountPanelElement>;
+
+const TdkOrderTicketComponent = defineComponent({
   name: 'TdkOrderTicket',
   props: {
     ...commonProps<TdkOrderTicketElement>(),
@@ -142,8 +151,10 @@ export const TdkOrderTicket = defineComponent({
   },
 });
 
-/** Buy and sell at market with live bid and ask (`<tdk-trade-buttons>`). */
-export const TdkTradeButtons = defineComponent({
+/** Order entry (`<tdk-order-ticket>`). The exposed `element` has `amend(order)` and `usePrice(price)`. */
+export const TdkOrderTicket = TdkOrderTicketComponent as WithElement<typeof TdkOrderTicketComponent, TdkOrderTicketElement>;
+
+const TdkTradeButtonsComponent = defineComponent({
   name: 'TdkTradeButtons',
   props: {
     ...commonProps<TdkTradeButtonsElement>(),
@@ -180,8 +191,10 @@ export const TdkTradeButtons = defineComponent({
   },
 });
 
-/** Toasts and a notification log (`<tdk-notifications>`). */
-export const TdkNotifications = defineComponent({
+/** Buy and sell at market with live bid and ask (`<tdk-trade-buttons>`). */
+export const TdkTradeButtons = TdkTradeButtonsComponent as WithElement<typeof TdkTradeButtonsComponent, TdkTradeButtonsElement>;
+
+const TdkNotificationsComponent = defineComponent({
   name: 'TdkNotifications',
   props: {
     ...commonProps<TdkNotificationsElement>(),
@@ -217,6 +230,9 @@ export const TdkNotifications = defineComponent({
       );
   },
 });
+
+/** Toasts and a notification log (`<tdk-notifications>`). */
+export const TdkNotifications = TdkNotificationsComponent as WithElement<typeof TdkNotificationsComponent, TdkNotificationsElement>;
 
 export const TdkPlaceholder = defineComponent({
   name: 'TdkPlaceholder',
