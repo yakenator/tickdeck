@@ -49,6 +49,8 @@ trading.setVisibility({ fills: false });
 view.dispose(); // also disposes the trading overlay
 ```
 
+The package can be imported without a DOM, for example during server-side rendering; create the view in the browser (in an effect or `onMounted`).
+
 ## `createChartView(container, options)`
 
 | Option | Default | |

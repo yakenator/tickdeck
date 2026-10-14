@@ -26,7 +26,7 @@ Market data and brokerage connectivity (tickdeck connects to yours), a scripting
 └──────────────────────────────────────────────────────────────┘
 ```
 
-1. **Headless logic.** State, validation, calculations, the data feed and broker contracts, and the chart engine. No framework code. `core`, `datafeed`, `broker` and `widgets-core` also run without a DOM (Node, workers, tests). Their `tsconfig.json` drops the DOM library, so an accidental DOM reference fails the type check.
+1. **Headless logic.** State, validation, calculations, the data feed and broker contracts, and the chart engine. No framework code. `core`, `datafeed`, `broker` and `widgets-core` also run without a DOM (Node, workers, tests). Their `tsconfig.json` drops the DOM library, so an accidental DOM reference fails the type check. `chart` and `chart-engine` need a DOM only to create a chart, so every package can be imported during server-side rendering.
 2. **Web Components.** The default UI. Each widget is a `tdk-*` custom element with Shadow DOM, which works the same in every environment.
 3. **Framework wrappers.** Thin adapters that turn element properties, events and refs into each framework's idioms. A new framework needs only a new wrapper.
 
