@@ -344,6 +344,19 @@ describe('attachTrading: lines outside the bars', () => {
     expect(top.pane).toEqual([{ text: '\u25b2 SELL LMT 2', y: 10.5 }]);
     expect(top.axis).toEqual([{ text: '150.00', y: 10.5 }]);
     expect(drawnAt(engine, high, 140).pane).toEqual([{ text: '\u25b2 SELL LMT 1', y: 29.5 }]);
+    // Behind each axis label, a band of the background hides the tick labels it would partly cover.
+    const axisFigures = ([] as Array<{ type: string; attrs: { y: number; height: number }; styles: { color?: string } }>).concat(
+      engineOverlay(engine, higher).createYAxisFigures?.({
+        chart: engine,
+        overlay: engineOverlay(engine, higher),
+        coordinates: [{ x: 0, y: priceAxis(engine).convertToPixel(150) }],
+        bounding: { width: 60, height: top.height, left: 0, top: 0, right: 0, bottom: 0 },
+        xAxis: null,
+        yAxis: priceAxis(engine),
+      }) as never,
+    );
+    expect(axisFigures.map((figure) => figure.type)).toEqual(['rect', 'text']);
+    expect(axisFigures[0]).toMatchObject({ attrs: { y: 10.5 - 14.5, height: 29 }, styles: { color: chartThemes.light.background } });
     const bottom = drawnAt(engine, low, 60);
     expect(bottom.pane).toEqual([{ text: '\u25bc BUY LMT 3', y: bottom.height - 10.5 }]);
     expect(bottom.axis).toEqual([{ text: '60.00', y: bottom.height - 10.5 }]);

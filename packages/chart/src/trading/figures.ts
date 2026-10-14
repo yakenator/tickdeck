@@ -42,6 +42,8 @@ const MARKER_HALF_WIDTH = 5;
 const MARKER_HEIGHT = 8;
 const LABEL_HEIGHT = FONT_SIZE + LABEL_PADDING_Y * 2;
 const EDGE_GAP = 2;
+/** Half the height of the engine's price-axis tick labels (12px text). */
+const TICK_LABEL_HALF_HEIGHT = 6;
 const EDGE_ARROWS = { top: '\u25b2', bottom: '\u25bc' } as const;
 
 /** What figure callbacks know about the price axis. */
@@ -126,13 +128,27 @@ function lineFigures(render: LineRender, price: number, y: number, width: number
   return figures;
 }
 
-function axisFigure(render: LineRender, price: number, y: number, width: number, fromZero: boolean): EngineFigure {
-  return {
-    type: 'text',
-    ignoreEvent: true,
-    attrs: { x: fromZero ? 0 : width, y, text: render.formatPrice(price), align: fromZero ? 'left' : 'right', baseline: 'middle' },
-    styles: { ...labelStyles(lineColor(render.line, render.colors), render.colors), paddingLeft: 4, paddingRight: 4 },
-  };
+/**
+ * The line's price on the axis. A band of the chart's background behind it
+ * hides the tick labels it would partly cover; it is drawn with the label, so
+ * it follows the line while it is dragged. It leaves the axis line visible.
+ */
+function axisFigures(render: LineRender, price: number, y: number, width: number, fromZero: boolean): EngineFigure[] {
+  const half = LABEL_HEIGHT / 2 + TICK_LABEL_HALF_HEIGHT;
+  return [
+    {
+      type: 'rect',
+      ignoreEvent: true,
+      attrs: { x: fromZero ? 1 : 0, y: y - half, width: width - 1, height: half * 2 },
+      styles: { style: 'fill', color: render.colors.background, borderSize: 0 },
+    },
+    {
+      type: 'text',
+      ignoreEvent: true,
+      attrs: { x: fromZero ? 0 : width, y, text: render.formatPrice(price), align: fromZero ? 'left' : 'right', baseline: 'middle' },
+      styles: { ...labelStyles(lineColor(render.line, render.colors), render.colors), paddingLeft: 4, paddingRight: 4 },
+    },
+  ];
 }
 
 /** Where this line's edge marker goes, or `undefined` while the line is inside the pane. */
@@ -213,7 +229,7 @@ export function ensureTradingOverlays(): void {
       if (!render || y === undefined || price === undefined) return [];
       const place = edgePlace(render, y, bounding.height, yAxis);
       const labelY = place ? edgeY(place, bounding.height) : y;
-      return [axisFigure(render, price, labelY, bounding.width, yAxis?.isFromZero() ?? true)];
+      return axisFigures(render, price, labelY, bounding.width, yAxis?.isFromZero() ?? true);
     },
   });
   registerOverlay({
