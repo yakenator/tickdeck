@@ -10,10 +10,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified by tickdeck contributors.
  */
 
 import type Bounding from '../common/Bounding'
 import type { AxisStyle, Styles } from '../common/Styles'
+import { isValid } from '../common/utils/typeChecks'
 import type { AxisTick } from '../component/Axis'
 import type { YAxis } from '../component/YAxis'
 import type { LineAttrs } from '../extension/figure/line'
@@ -101,12 +103,40 @@ export default class YAxisView extends AxisView<YAxis> {
       }
     }
     const textAlign = this.getAxis().isFromZero() ? 'left' : 'right'
-    return ticks.map((tick) => ({
-      x,
-      y: tick.coord,
-      text: tick.text,
-      align: textAlign,
-      baseline: 'middle'
-    }))
+    const lastPrice = this._lastPriceLabelBand(tickTextStyles.size)
+    return ticks
+      .filter((tick) => lastPrice === null || Math.abs(tick.coord - lastPrice.y) >= lastPrice.halfHeight)
+      .map((tick) => ({
+        x,
+        y: tick.coord,
+        text: tick.text,
+        align: textAlign,
+        baseline: 'middle'
+      }))
+  }
+
+  /**
+   * Where the candle pane's last price label sits, widened by half a tick
+   * label: tick labels inside it would be partly covered by it, so they are
+   * left out.
+   */
+  private _lastPriceLabelBand(tickTextSize: number): { y: number, halfHeight: number } | null {
+    const yAxis = this.getAxis()
+    const pane = this.getWidget().getPane()
+    if (!yAxis.isInCandle() || !(pane.isDefaultYAxis(yAxis.id) || pane.isManualYAxis(yAxis.id))) {
+      return null
+    }
+    const chartStore = pane.getChart().getChartStore()
+    const priceMark = chartStore.getStyles().candle.priceMark
+    const text = priceMark.last.text
+    const dataList = chartStore.getDataList()
+    const data = dataList[dataList.length - 1]
+    if (!priceMark.show || !priceMark.last.show || !text.show || !isValid(data)) {
+      return null
+    }
+    return {
+      y: yAxis.convertToNicePixel(data.close),
+      halfHeight: (text.paddingTop + text.size + text.paddingBottom + tickTextSize) / 2
+    }
   }
 }
