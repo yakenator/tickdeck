@@ -132,6 +132,7 @@ Every widget is made of three pieces:
    - It takes `session` and `feed` (and optionally `scheduler` and `time-zone`) and creates (and disposes) its own controller, or renders a `controller` you pass in and keep. Changing `time-zone` switches the controller's time zone in place (`setTimeZone`) without losing its state.
    - Rich data (objects, arrays, controllers) is set as properties. Simple configuration also works as attributes.
    - User actions are dispatched as `CustomEvent`s named `tdk-<action>` that bubble and are `composed`, so they cross shadow boundaries.
+   - Elements fill the space their layout gives them: the host is a flex column and the visible box grows to its height, so stretched grid and flex items line up. Without an imposed height they keep their natural height. The page owns the geometry; a chart and a column of widgets share a stretched grid row, with a `min-height` on the chart (see the root README).
    - `@tickdeck/elements` exports the element classes without registering them. `@tickdeck/elements/define` registers every element and skips tags that are already defined. Registration modules are the only files listed in `sideEffects`.
 3. **Wrappers** (`react`, `vue`). Components that map props, events and refs to framework idioms. Hooks and composables will expose the controllers for fully custom UIs.
 

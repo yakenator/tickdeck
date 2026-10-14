@@ -313,6 +313,8 @@ describe('createChartView: keyboard and accessibility', () => {
     expect(root.getAttribute('tabindex')).toBe('0');
     expect(root.getAttribute('role')).toBe('img');
     expect(root.getAttribute('aria-label')).toBe('ACME, 1m chart');
+    // The canvases never size the container, so a container stretched by a grid or flex row can shrink again.
+    expect(root.style.contain).toBe('size');
 
     await settle(20);
     view.setTimeframe('5m');

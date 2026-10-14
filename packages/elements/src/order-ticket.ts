@@ -59,6 +59,7 @@ export class TdkOrderTicketElement extends TdkWidgetElement<OrderTicketControlle
     ...TdkWidgetElement.styles,
     css`
       form {
+        flex: 1 1 auto;
         display: flex;
         flex-direction: column;
         gap: var(--_space-2);

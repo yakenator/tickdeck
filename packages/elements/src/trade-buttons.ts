@@ -33,6 +33,7 @@ export class TdkTradeButtonsElement extends TdkWidgetElement<TradeButtonsControl
     ...TdkWidgetElement.styles,
     css`
       .container {
+        flex: 1 1 auto;
         display: flex;
         flex-direction: column;
         gap: var(--_space-2);

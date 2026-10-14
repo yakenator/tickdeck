@@ -54,6 +54,9 @@ export class TdkAccountPanelElement extends TdkWidgetElement<AccountPanelControl
     ...TdkWidgetElement.styles,
     css`
       .panel {
+        flex: 1 1 auto;
+        /* Given less height than its content, the panel keeps its tabs and scrolls the table. */
+        min-height: 0;
         display: flex;
         flex-direction: column;
         gap: var(--_space-2);
@@ -123,7 +126,9 @@ export class TdkAccountPanelElement extends TdkWidgetElement<AccountPanelControl
         text-align: center;
       }
       .scroll {
-        overflow-x: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
       }
       table {
         width: 100%;

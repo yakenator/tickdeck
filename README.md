@@ -66,13 +66,38 @@ npm install @tickdeck/widgets-core @tickdeck/broker @tickdeck/datafeed
 
 Every part works on one `BrokerSession` (your `BrokerConnector`, or `MockBroker` for development) and one `MarketFeed` (yours, `HttpPollingFeed`, or `MockFeed`). The examples below run entirely on mock data.
 
+### Layout
+
+Widgets fill the space their layout gives them and keep their natural height otherwise, and the chart fills its container and follows its size. To keep the chart and a column of widgets equally tall, put them in one grid row that stretches its cells, give the chart a `min-height` instead of a fixed height, and let the order ticket take the rest of the column. The row is then as tall as the taller of the two: a taller column makes the chart grow, a taller chart stretches the ticket to the chart's bottom. The snippets below use these classes.
+
+```css
+.trading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-areas: 'chart side' 'panel panel';
+  align-items: stretch;
+  gap: 12px;
+}
+.trading .chart { grid-area: chart; min-height: 420px; min-width: 0; }
+.trading .side { grid-area: side; display: flex; flex-direction: column; gap: 12px; }
+.trading .side tdk-order-ticket { flex: 1; }
+.trading tdk-account-panel { grid-area: panel; }
+@media (max-width: 720px) {
+  .trading { grid-template-columns: 1fr; grid-template-areas: 'chart' 'side' 'panel'; }
+}
+```
+
 ### Web Components
 
 ```html
-<div id="chart" style="height: 420px"></div>
-<tdk-order-ticket instrument="MOCK:ACME" kind="limit"></tdk-order-ticket>
-<tdk-trade-buttons instrument="MOCK:ACME" quantity="1"></tdk-trade-buttons>
-<tdk-account-panel></tdk-account-panel>
+<div class="trading">
+  <div id="chart" class="chart"></div>
+  <div class="side">
+    <tdk-trade-buttons instrument="MOCK:ACME" quantity="1"></tdk-trade-buttons>
+    <tdk-order-ticket instrument="MOCK:ACME" kind="limit"></tdk-order-ticket>
+  </div>
+  <tdk-account-panel></tdk-account-panel>
+</div>
 <tdk-notifications placement="bottom-end"></tdk-notifications>
 ```
 
@@ -107,7 +132,7 @@ import { useEffect, useRef } from 'react';
 import { attachTrading, createChartView } from '@tickdeck/chart';
 import { BrokerSession, MockBroker } from '@tickdeck/broker';
 import { MockFeed } from '@tickdeck/datafeed';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, type TdkOrderTicketElement } from '@tickdeck/react';
+import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons, type TdkOrderTicketElement } from '@tickdeck/react';
 
 const feed = new MockFeed();
 const session = new BrokerSession(new MockBroker({ feed }));
@@ -125,9 +150,14 @@ export function Trading() {
 
   return (
     <>
-      <div ref={chart} style={{ height: 420 }} />
-      <TdkOrderTicket ref={ticket} session={session} feed={feed} instrument="MOCK:ACME" kind="limit" />
-      <TdkAccountPanel session={session} feed={feed} onAmend={(event) => ticket.current?.amend(event.detail.order)} />
+      <div className="trading">
+        <div ref={chart} className="chart" />
+        <div className="side">
+          <TdkTradeButtons session={session} feed={feed} instrument="MOCK:ACME" quantity={1} />
+          <TdkOrderTicket ref={ticket} session={session} feed={feed} instrument="MOCK:ACME" kind="limit" />
+        </div>
+        <TdkAccountPanel session={session} feed={feed} onAmend={(event) => ticket.current?.amend(event.detail.order)} />
+      </div>
       <TdkNotifications session={session} feed={feed} placement="bottom-end" />
     </>
   );
@@ -142,11 +172,11 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { attachTrading, createChartView, type ChartView } from '@tickdeck/chart';
 import { BrokerSession, MockBroker } from '@tickdeck/broker';
 import { MockFeed } from '@tickdeck/datafeed';
-import { TdkAccountPanel, TdkNotifications, TdkOrderTicket } from '@tickdeck/vue';
+import { TdkAccountPanel, TdkNotifications, TdkOrderTicket, TdkTradeButtons } from '@tickdeck/vue';
 
 const feed = new MockFeed();
 const session = new BrokerSession(new MockBroker({ feed }));
-void session.start(); // the widgets and the chart's lines catch up once it has connected
+void session.start(); // the widgets show "Connecting to the broker…", and they and the chart's lines catch up once it has connected
 
 const chart = ref<HTMLDivElement>();
 const ticket = ref<InstanceType<typeof TdkOrderTicket>>();
@@ -159,9 +189,14 @@ onBeforeUnmount(() => view?.dispose());
 </script>
 
 <template>
-  <div ref="chart" style="height: 420px"></div>
-  <TdkOrderTicket ref="ticket" :session="session" :feed="feed" instrument="MOCK:ACME" kind="limit" />
-  <TdkAccountPanel :session="session" :feed="feed" @amend="({ order }) => ticket?.element?.amend(order)" />
+  <div class="trading">
+    <div ref="chart" class="chart"></div>
+    <div class="side">
+      <TdkTradeButtons :session="session" :feed="feed" instrument="MOCK:ACME" :quantity="1" />
+      <TdkOrderTicket ref="ticket" :session="session" :feed="feed" instrument="MOCK:ACME" kind="limit" />
+    </div>
+    <TdkAccountPanel :session="session" :feed="feed" @amend="({ order }) => ticket?.element?.amend(order)" />
+  </div>
   <TdkNotifications :session="session" :feed="feed" placement="bottom-end" />
 </template>
 ```

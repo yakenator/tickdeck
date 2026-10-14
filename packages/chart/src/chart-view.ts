@@ -237,6 +237,9 @@ class ChartViewImpl implements ChartView {
     this.#paintBackground();
     // The engine's root takes keyboard focus (Shift+arrows scroll, Shift+plus and minus zoom); it is named after what it shows.
     const root = engine.getDom();
+    // The engine's canvases are sized from the container. Size containment keeps them from feeding that size back into
+    // the page layout, so a container sized by a grid or flex row (with only a min-height) shrinks again with the row.
+    if (root) root.style.contain = 'size';
     root?.setAttribute('role', 'img');
     root?.addEventListener('focus', this.#onFocus);
     root?.addEventListener('blur', this.#onBlur);

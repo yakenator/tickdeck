@@ -91,8 +91,14 @@ export const themeStyles = css`
 `;
 
 export const baseStyles = css`
+  /*
+   * Elements fill the space their layout gives them: the host is a flex column
+   * and its visible box grows to the host's height (stretched grid or flex
+   * items, or an explicit height). Without one they keep their natural height.
+   */
   :host {
-    display: block;
+    display: flex;
+    flex-direction: column;
     box-sizing: border-box;
     /* Lets the element shrink inside grid and flex layouts; wide tables scroll inside it. */
     min-width: 0;

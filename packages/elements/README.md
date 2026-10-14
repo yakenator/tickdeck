@@ -128,6 +128,50 @@ Events are `CustomEvent`s that bubble and are `composed`, so they cross shadow r
 | `tdk-notification` | notifications | `{ notification }` | |
 | `tdk-dismiss` | notifications | `{ notification }` | |
 
+## Sizing and layout
+
+Every element fills the space its layout gives it. The host is a flex column (`display: flex`) and the element's visible box (`::part(form)` of the ticket, `::part(container)` of the trade buttons, `::part(panel)` of the account panel) grows to the host's height, so stretched grid or flex items line up at the bottom. Without an imposed height an element keeps its natural height. Given less height than its content, the account panel keeps its summary and tabs and scrolls the table.
+
+A chart next to a column of widgets, both as tall as the taller of the two: one grid row that stretches its cells, a `min-height` (not a fixed `height`) on the chart cell, and the side column as a flex column in which the ticket takes the remaining height.
+
+```css
+.trading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: stretch;
+  gap: 12px;
+}
+.trading .chart {
+  min-height: 420px;
+  min-width: 0;
+}
+.trading .side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.trading tdk-order-ticket {
+  flex: 1;
+}
+@media (max-width: 720px) {
+  .trading {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+```html
+<div class="trading">
+  <div class="chart" id="chart"></div>
+  <div class="side">
+    <tdk-trade-buttons instrument="MOCK:ACME"></tdk-trade-buttons>
+    <tdk-order-ticket instrument="MOCK:ACME" kind="limit"></tdk-order-ticket>
+  </div>
+</div>
+```
+
+When the column is taller (a limit order with take-profit and stop-loss), the chart grows to its height; when the chart's `min-height` is taller, the ticket's box stretches to the chart's bottom. `createChartView` follows its container's size, so the chart redraws as the row changes height. Override the host's `display` (for example `display: block`) to opt out.
+
 ## Theming
 
 Every themable value is a CSS custom property. Custom properties inherit into shadow roots, so set them on `:root` or on any container. Values you set always win over the light and dark presets.
@@ -192,6 +236,6 @@ Style internals from outside with `::part()`.
 
 ## Building your own
 
-`TdkWidgetElement` is the base class: it handles `controller`, `session`, `feed` and `theme`, owns created controllers and re-renders on state changes. `themeStyles` and `baseStyles` hold the token mapping and shared control styles.
+`TdkWidgetElement` is the base class: it handles `controller`, `session`, `feed`, `scheduler`, `timeZone` and `theme`, owns created controllers and re-renders on state changes. `themeStyles` and `baseStyles` hold the token mapping and shared control styles.
 
 Part of [tickdeck](https://github.com/yakenator/tickdeck). Licensed under Apache-2.0.
