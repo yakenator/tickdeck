@@ -52,9 +52,11 @@ Callbacks receive the element's `CustomEvent`; the payload is `event.detail`. Fo
 
 Other props (`id`, `className`, `style`, `aria-*`, `children`) go to the element.
 
+Simple props (strings, numbers, booleans such as `instrument`, `kind`, `quantity`, `checkOrders`, `theme`, `timeZone`) are also rendered as the element's attributes (`check-orders`, `time-zone`, ...), so server-side rendering produces meaningful HTML such as `<tdk-order-ticket instrument="MOCK:ACME" kind="limit">`; `true` becomes an empty attribute and `false` none. Rich props (`session`, `feed`, `controller`, `scheduler`, arrays) are set as properties once the page hydrates.
+
 ## Components
 
-All components accept `session`, `feed`, `controller` and `theme` (see the [`@tickdeck/elements` README](https://github.com/yakenator/tickdeck/tree/main/packages/elements#readme)).
+All components accept `session`, `feed`, `controller`, `scheduler`, `timeZone` and `theme` (see the [`@tickdeck/elements` README](https://github.com/yakenator/tickdeck/tree/main/packages/elements#readme)).
 
 | Component | Element | Props | Callbacks |
 |---|---|---|---|

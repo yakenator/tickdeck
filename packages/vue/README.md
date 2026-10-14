@@ -43,11 +43,13 @@ const amend = ({ order }: TdkAmendDetail) => ticket.value?.element?.amend(order)
 
 Keep sessions, feeds and controllers out of deep reactivity (`shallowRef` or `markRaw`): they hold private state that Vue proxies cannot reach. The components unwrap proxies before handing objects to the elements, so a `reactive()` object still works, but raw objects avoid needless proxying.
 
+Simple props (strings, numbers, booleans such as `instrument`, `kind`, `quantity`, `checkOrders`, `theme`, `timeZone`) are bound both as properties and as the element's attributes (`check-orders`, `time-zone`, ...), so server-side rendering produces meaningful HTML such as `<tdk-order-ticket instrument="MOCK:ACME" kind="limit">`; `true` becomes an empty attribute and `false` none. Rich props (`session`, `feed`, `controller`, `scheduler`, arrays) are set as properties in the browser. Other attributes (`class`, `id`, `style`, `aria-*`) and native listeners go to the element.
+
 Emits carry the event detail. The cancelable account panel events (`cancel-order`, `close-position`, `reverse-position`) also pass the `CustomEvent` as a second argument; call `preventDefault()` on it to stop the action. Each component exposes `element`, the custom element once mounted (for example `element.amend(order)` or `element.usePrice(price)` on the ticket). It is typed on the instance, so `ref<InstanceType<typeof TdkOrderTicket>>()` sees it.
 
 ## Components
 
-All components accept `session`, `feed`, `controller` and `theme` (see the [`@tickdeck/elements` README](https://github.com/yakenator/tickdeck/tree/main/packages/elements#readme)).
+All components accept `session`, `feed`, `controller`, `scheduler`, `timeZone` and `theme` (see the [`@tickdeck/elements` README](https://github.com/yakenator/tickdeck/tree/main/packages/elements#readme)).
 
 | Component | Props | Emits |
 |---|---|---|

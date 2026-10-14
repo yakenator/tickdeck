@@ -65,21 +65,54 @@ function properties(source: Record<string, unknown>): Record<string, unknown> {
   return bound;
 }
 
+/**
+ * Simple values also as attributes (Vue's `^attr` binding), keyed by attribute
+ * name, so server-side rendering produces meaningful HTML. `true` is an empty
+ * attribute, `false` and `undefined` none.
+ */
+function attributes(source: Record<string, unknown>): Record<string, unknown> {
+  const bound: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(source)) {
+    if (typeof value === 'string' || typeof value === 'number') bound[`^${name}`] = value;
+    else if (value === true) bound[`^${name}`] = '';
+  }
+  return bound;
+}
+
 const objectProp = <T>() => ({ type: Object as PropType<T>, default: undefined });
 const optionalBoolean = { type: Boolean, default: undefined };
 
-const commonProps = <E extends { controller?: unknown; session?: unknown; feed?: unknown }>() => ({
+const commonProps = <E extends { controller?: unknown; session?: unknown; feed?: unknown; scheduler?: unknown }>() => ({
   /** A widgets-core controller to render. Takes precedence over `session`. Pass it raw (`markRaw` or `shallowRef`). */
   controller: objectProp<E['controller']>(),
   /** The trading session. Pass it raw (`markRaw` or `shallowRef`). */
   session: objectProp<E['session']>(),
   /** Quotes and instrument metadata, typically a `MarketFeed`. */
   feed: objectProp<E['feed']>(),
+  /** Clock and timers for the controller the element creates. */
+  scheduler: objectProp<E['scheduler']>(),
+  /** IANA time zone of displayed times, such as `America/New_York`. Default: the browser's. */
+  timeZone: String,
   theme: String as PropType<TdkTheme>,
+});
+
+/** Common props as attributes and properties. */
+const common = (props: { controller?: unknown; session?: unknown; feed?: unknown; scheduler?: unknown; timeZone?: string; theme?: string }) => ({
+  ...attributes({ theme: props.theme, 'time-zone': props.timeZone }),
+  ...properties({
+    controller: props.controller,
+    session: props.session,
+    feed: props.feed,
+    scheduler: props.scheduler,
+    timeZone: props.timeZone,
+    theme: props.theme,
+  }),
 });
 
 const TdkAccountPanelComponent = defineComponent({
   name: 'TdkAccountPanel',
+  // Attributes such as `class` and `id` are passed on first, ahead of the element's own attributes.
+  inheritAttrs: false,
   props: {
     ...commonProps<TdkAccountPanelElement>(),
     tab: String as PropType<NonNullable<TdkAccountPanelElement['tab']>>,
@@ -95,22 +128,18 @@ const TdkAccountPanelComponent = defineComponent({
     'action-error': (_detail: TdkActionErrorDetail) => true,
     'tab-change': (_detail: TdkTabChangeDetail) => true,
   },
-  setup(props, { emit, expose, slots }) {
+  setup(props, { attrs, emit, expose, slots }) {
     const element = ref<TdkAccountPanelElement>();
     expose({ element });
     return () =>
       h(
         'tdk-account-panel',
         {
+          ...attrs,
           ref: element,
-          theme: props.theme,
-          ...properties({
-            controller: props.controller,
-            session: props.session,
-            feed: props.feed,
-            tab: props.tab,
-            orderFilter: props.orderFilter,
-          }),
+          ...common(props),
+          ...attributes({ tab: props.tab, 'order-filter': props.orderFilter }),
+          ...properties({ tab: props.tab, orderFilter: props.orderFilter }),
           onTdkCancelOrder: (event: CustomEvent<TdkCancelOrderDetail>) => emit('cancel-order', event.detail, event),
           onTdkAmend: (event: CustomEvent<TdkAmendDetail>) => emit('amend', event.detail),
           onTdkClosePosition: (event: CustomEvent<TdkClosePositionDetail>) => emit('close-position', event.detail, event),
@@ -130,6 +159,8 @@ export const TdkAccountPanel = TdkAccountPanelComponent as WithElement<typeof Td
 
 const TdkOrderTicketComponent = defineComponent({
   name: 'TdkOrderTicket',
+  // Attributes such as `class` and `id` are passed on first, ahead of the element's own attributes.
+  inheritAttrs: false,
   props: {
     ...commonProps<TdkOrderTicketElement>(),
     instrument: String,
@@ -145,19 +176,25 @@ const TdkOrderTicketComponent = defineComponent({
     'order-amended': (_detail: TdkOrderAmendedDetail) => true,
     'order-error': (_detail: TdkOrderErrorDetail) => true,
   },
-  setup(props, { emit, expose, slots }) {
+  setup(props, { attrs, emit, expose, slots }) {
     const element = ref<TdkOrderTicketElement>();
     expose({ element });
     return () =>
       h(
         'tdk-order-ticket',
         {
+          ...attrs,
           ref: element,
-          theme: props.theme,
+          ...common(props),
+          ...attributes({
+            instrument: props.instrument,
+            side: props.side,
+            kind: props.kind,
+            quantity: props.quantity,
+            'check-orders': props.checkOrders,
+            'exit-mode': props.exitMode,
+          }),
           ...properties({
-            controller: props.controller,
-            session: props.session,
-            feed: props.feed,
             instrument: props.instrument,
             side: props.side,
             kind: props.kind,
@@ -180,6 +217,8 @@ export const TdkOrderTicket = TdkOrderTicketComponent as WithElement<typeof TdkO
 
 const TdkTradeButtonsComponent = defineComponent({
   name: 'TdkTradeButtons',
+  // Attributes such as `class` and `id` are passed on first, ahead of the element's own attributes.
+  inheritAttrs: false,
   props: {
     ...commonProps<TdkTradeButtonsElement>(),
     instrument: String,
@@ -190,23 +229,18 @@ const TdkTradeButtonsComponent = defineComponent({
     'order-placed': (_detail: TdkOrderPlacedDetail) => true,
     'order-error': (_detail: TdkOrderErrorDetail) => true,
   },
-  setup(props, { emit, expose, slots }) {
+  setup(props, { attrs, emit, expose, slots }) {
     const element = ref<TdkTradeButtonsElement>();
     expose({ element });
     return () =>
       h(
         'tdk-trade-buttons',
         {
+          ...attrs,
           ref: element,
-          theme: props.theme,
-          ...properties({
-            controller: props.controller,
-            session: props.session,
-            feed: props.feed,
-            instrument: props.instrument,
-            quantity: props.quantity,
-            confirm: props.confirm,
-          }),
+          ...common(props),
+          ...attributes({ instrument: props.instrument, quantity: props.quantity, confirm: props.confirm }),
+          ...properties({ instrument: props.instrument, quantity: props.quantity, confirm: props.confirm }),
           onTdkOrderPlaced: (event: CustomEvent<TdkOrderPlacedDetail>) => emit('order-placed', event.detail),
           onTdkOrderError: (event: CustomEvent<TdkOrderErrorDetail>) => emit('order-error', event.detail),
         },
@@ -220,6 +254,8 @@ export const TdkTradeButtons = TdkTradeButtonsComponent as WithElement<typeof Td
 
 const TdkNotificationsComponent = defineComponent({
   name: 'TdkNotifications',
+  // Attributes such as `class` and `id` are passed on first, ahead of the element's own attributes.
+  inheritAttrs: false,
   props: {
     ...commonProps<TdkNotificationsElement>(),
     placement: String as PropType<NonNullable<TdkNotificationsElement['placement']>>,
@@ -230,23 +266,18 @@ const TdkNotificationsComponent = defineComponent({
     notification: (_detail: TdkNotificationDetail) => true,
     dismiss: (_detail: TdkDismissDetail) => true,
   },
-  setup(props, { emit, expose, slots }) {
+  setup(props, { attrs, emit, expose, slots }) {
     const element = ref<TdkNotificationsElement>();
     expose({ element });
     return () =>
       h(
         'tdk-notifications',
         {
+          ...attrs,
           ref: element,
-          theme: props.theme,
-          placement: props.placement,
-          ...properties({
-            controller: props.controller,
-            session: props.session,
-            feed: props.feed,
-            hideLog: props.hideLog,
-            maxToasts: props.maxToasts,
-          }),
+          ...common(props),
+          ...attributes({ placement: props.placement, 'hide-log': props.hideLog, 'max-toasts': props.maxToasts }),
+          ...properties({ placement: props.placement, hideLog: props.hideLog, maxToasts: props.maxToasts }),
           onTdkNotification: (event: CustomEvent<TdkNotificationDetail>) => emit('notification', event.detail),
           onTdkDismiss: (event: CustomEvent<TdkDismissDetail>) => emit('dismiss', event.detail),
         },

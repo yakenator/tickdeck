@@ -66,37 +66,48 @@ const LEGACY_CLASS_NAME = Number.parseInt(reactVersion, 10) < 19;
 type Handler<D> = (event: CustomEvent<D>) => void;
 
 /** Props every wrapper accepts besides the usual HTML attributes. */
-export interface TdkWidgetProps<E extends { controller?: unknown; session?: unknown; feed?: unknown }> extends HTMLAttributes<HTMLElement> {
+export interface TdkWidgetProps<E extends { controller?: unknown; session?: unknown; feed?: unknown; scheduler?: unknown }>
+  extends HTMLAttributes<HTMLElement> {
   /** A widgets-core controller to render. Takes precedence over `session`. */
   controller?: E['controller'];
   /** The trading session. The element creates its own controller from it. */
   session?: E['session'];
   /** Quotes and instrument metadata, typically a `MarketFeed`. */
   feed?: E['feed'];
+  /** Clock and timers for the controller the element creates. */
+  scheduler?: E['scheduler'];
+  /** IANA time zone of displayed times, such as `America/New_York`. Default: the browser's. */
+  timeZone?: string;
   theme?: TdkTheme;
 }
 
 interface WrapperSpec {
   tag: string;
   displayName: string;
-  /** Props set as element properties. */
+  /** Rich props, set as element properties only. */
   properties: readonly string[];
+  /** Simple props (strings, numbers, booleans): prop name to attribute name. Rendered as attributes, so server HTML carries them, and set as properties. */
+  attributes: Readonly<Record<string, string>>;
   /** Callback prop name to DOM event type. */
   events: Readonly<Record<string, string>>;
 }
 
-const COMMON_PROPERTIES = ['controller', 'session', 'feed', 'theme'] as const;
+const COMMON_PROPERTIES = ['controller', 'session', 'feed', 'scheduler'] as const;
+const COMMON_ATTRIBUTES = { theme: 'theme', timeZone: 'time-zone' } as const;
 
 /**
- * Builds a component that renders a `tdk-*` element, assigns rich props as
+ * Builds a component that renders a `tdk-*` element, assigns props as
  * element properties and subscribes callback props to its events through a
- * ref. Works the same on React 18 (which would stringify objects into
- * attributes) and React 19.
+ * ref. Simple props are also rendered as attributes, so server-side rendering
+ * produces meaningful HTML (`<tdk-order-ticket instrument="…" kind="limit">`);
+ * `true` renders an empty attribute and `false` none. Works the same on React
+ * 18 (which would stringify objects into attributes) and React 19.
  */
 function createWrapper<E extends HTMLElement, P extends object>(
   spec: WrapperSpec,
 ): ForwardRefExoticComponent<PropsWithoutRef<P> & RefAttributes<E>> {
-  const properties = new Set<string>([...COMMON_PROPERTIES, ...spec.properties]);
+  const attributeNames: Readonly<Record<string, string>> = { ...COMMON_ATTRIBUTES, ...spec.attributes };
+  const properties = new Set<string>([...COMMON_PROPERTIES, ...spec.properties, ...Object.keys(attributeNames)]);
   const Component = forwardRef<E, P>((props, forwardedRef) => {
     const ref = useRef<E | null>(null);
     const assigned = useRef(new Set<string>());
@@ -106,11 +117,15 @@ function createWrapper<E extends HTMLElement, P extends object>(
     const values: Record<string, unknown> = {};
     const callbacks: Record<string, unknown> = {};
     const passthrough: Record<string, unknown> = {};
+    const attributes: Record<string, unknown> = {};
     for (const [name, value] of Object.entries(props)) {
       if (properties.has(name)) values[name] = value;
       else if (name in spec.events) callbacks[name] = value;
       else if (name === 'className' && LEGACY_CLASS_NAME) passthrough.class = value;
       else passthrough[name] = value;
+      const attribute = attributeNames[name];
+      // `false` is left out: React 18 would write "false", which a boolean attribute reads as present.
+      if (attribute && (typeof value === 'string' || typeof value === 'number' || value === true)) attributes[attribute] = value;
     }
     handlers.current = callbacks;
 
@@ -137,7 +152,7 @@ function createWrapper<E extends HTMLElement, P extends object>(
       };
     }, []);
 
-    return createElement(spec.tag, { ...passthrough, ref });
+    return createElement(spec.tag, { ...passthrough, ...attributes, ref });
   });
   Component.displayName = spec.displayName;
   return Component;
@@ -162,7 +177,8 @@ export interface TdkAccountPanelProps extends TdkWidgetProps<TdkAccountPanelElem
 export const TdkAccountPanel = createWrapper<TdkAccountPanelElement, TdkAccountPanelProps>({
   tag: 'tdk-account-panel',
   displayName: 'TdkAccountPanel',
-  properties: ['tab', 'orderFilter'],
+  properties: [],
+  attributes: { tab: 'tab', orderFilter: 'order-filter' },
   events: {
     onCancelOrder: 'tdk-cancel-order',
     onAmend: 'tdk-amend',
@@ -191,7 +207,8 @@ export interface TdkOrderTicketProps extends TdkWidgetProps<TdkOrderTicketElemen
 export const TdkOrderTicket = createWrapper<TdkOrderTicketElement, TdkOrderTicketProps>({
   tag: 'tdk-order-ticket',
   displayName: 'TdkOrderTicket',
-  properties: ['instrument', 'side', 'kind', 'quantity', 'checkOrders', 'exitMode', 'instruments'],
+  properties: ['instruments'],
+  attributes: { instrument: 'instrument', side: 'side', kind: 'kind', quantity: 'quantity', checkOrders: 'check-orders', exitMode: 'exit-mode' },
   events: {
     onOrderPlaced: 'tdk-order-placed',
     onOrderAmended: 'tdk-order-amended',
@@ -211,7 +228,8 @@ export interface TdkTradeButtonsProps extends TdkWidgetProps<TdkTradeButtonsElem
 export const TdkTradeButtons = createWrapper<TdkTradeButtonsElement, TdkTradeButtonsProps>({
   tag: 'tdk-trade-buttons',
   displayName: 'TdkTradeButtons',
-  properties: ['instrument', 'quantity', 'confirm'],
+  properties: [],
+  attributes: { instrument: 'instrument', quantity: 'quantity', confirm: 'confirm' },
   events: {
     onOrderPlaced: 'tdk-order-placed',
     onOrderError: 'tdk-order-error',
@@ -230,7 +248,8 @@ export interface TdkNotificationsProps extends TdkWidgetProps<TdkNotificationsEl
 export const TdkNotifications = createWrapper<TdkNotificationsElement, TdkNotificationsProps>({
   tag: 'tdk-notifications',
   displayName: 'TdkNotifications',
-  properties: ['placement', 'hideLog', 'maxToasts'],
+  properties: [],
+  attributes: { placement: 'placement', hideLog: 'hide-log', maxToasts: 'max-toasts' },
   events: {
     onNotification: 'tdk-notification',
     onDismiss: 'tdk-dismiss',
