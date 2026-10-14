@@ -30,7 +30,17 @@ Every pull request that changes a published package needs a changeset:
 2. Select the affected packages and a bump for each. Before 1.0, breaking changes are minor bumps.
 3. Write a short summary for users and commit the generated file in `.changeset/`.
 
-Changes that only touch docs, tests or tooling don't need a changeset. At release time, maintainers run `changeset version` to apply pending changesets (version bumps and changelogs), then publish.
+Changes that only touch docs, tests or tooling don't need a changeset. The examples in `examples/` are private and never need one.
+
+All `@tickdeck/*` packages form one fixed group (`.changeset/config.json`), so they always share a version: the highest bump among pending changesets applies to every package.
+
+## Releases
+
+The repository is in Changesets pre mode with the `alpha` tag (`.changeset/pre.json`), so `changeset version` produces `0.1.0-alpha.N` versions. To release:
+
+1. `pnpm changeset version` applies pending changesets (versions and changelogs). Commit the result.
+2. `pnpm build`, then `pnpm changeset publish`. In this workspace Changesets publishes through `pnpm publish`, which replaces `workspace:*` dependencies with the exact version. Never run plain `npm publish` in a package directory: the `workspace:*` ranges would be published as they are.
+3. Run `pnpm changeset pre exit` before the first stable release.
 
 ## Ground rules
 
