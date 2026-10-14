@@ -1,7 +1,7 @@
 {
   "name": "@tickdeck/core",
   "version": "0.0.0",
-  "description": "Shared types and the typed event emitter used by every tickdeck package.",
+  "description": "Shared trading types, decimal-safe price and quantity math, the typed event emitter and observable values used by every tickdeck package.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -25,6 +25,9 @@
     "build": "tsup && node ../../scripts/copy-legal.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "decimal.js": "^10.6.0"
   },
   "devDependencies": {
     "vitest": "^5.0.4"
