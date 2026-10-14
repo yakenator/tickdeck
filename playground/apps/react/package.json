@@ -1,0 +1,31 @@
+{
+  "name": "playground-react",
+  "version": "0.0.0",
+  "private": true,
+  "description": "tickdeck in a React 19 app through @tickdeck/react, installed from npm and bundled with Vite.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tickdeck/broker": "0.1.0-alpha.1",
+    "@tickdeck/chart": "0.1.0-alpha.1",
+    "@tickdeck/core": "0.1.0-alpha.1",
+    "@tickdeck/datafeed": "0.1.0-alpha.1",
+    "@tickdeck/elements": "0.1.0-alpha.1",
+    "@tickdeck/react": "0.1.0-alpha.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.4"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "tickdeck-playground",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Consumer test apps that install tickdeck from the public npm registry, one per way of adopting it.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "install:all": "npm install --no-audit --no-fund",
+    "check:version": "node scripts/sync-version.mjs --check",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test:node": "npm run test --workspace apps/node",
+    "test:e2e": "node scripts/site.mjs && playwright test",
+    "verify": "node scripts/verify.mjs",
+    "site": "node scripts/site.mjs",
+    "preview": "node scripts/serve.mjs",
+    "update": "node scripts/update.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0"
+  }
+}
