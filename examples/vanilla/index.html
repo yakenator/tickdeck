@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>tickdeck trading screen</title>
+  </head>
+  <body>
+    <header class="toolbar">
+      <strong class="brand">tickdeck</strong>
+      <label class="control">
+        <span>Instrument</span>
+        <select id="instrument"></select>
+      </label>
+      <label class="control">
+        <span>Timeframe</span>
+        <select id="timeframe">
+          <option value="1m">1m</option>
+          <option value="5m">5m</option>
+          <option value="15m">15m</option>
+          <option value="1h">1h</option>
+          <option value="4h">4h</option>
+          <option value="1D">1D</option>
+        </select>
+      </label>
+      <label class="control">
+        <span>Style</span>
+        <select id="style">
+          <option value="candles">Candles</option>
+          <option value="bars">Bars</option>
+          <option value="line">Line</option>
+          <option value="area">Area</option>
+        </select>
+      </label>
+      <label class="control">
+        <span>Scale</span>
+        <select id="scale">
+          <option value="normal">Normal</option>
+          <option value="log">Log</option>
+          <option value="percent">Percent</option>
+          <option value="indexed">Indexed to 100</option>
+        </select>
+      </label>
+      <button id="theme" class="button" type="button" aria-pressed="false">Dark theme</button>
+      <form id="market" class="market" autocomplete="off">
+        <label class="control">
+          <span>Simulated market</span>
+          <input id="market-price" inputmode="decimal" aria-describedby="market-hint" />
+        </label>
+        <button class="button" type="submit">Move</button>
+        <span id="market-hint" class="hint"></span>
+      </form>
+    </header>
+
+    <main class="layout">
+      <section class="chart-area" aria-label="Chart">
+        <div id="chart" class="chart"></div>
+        <p class="chart-status">
+          <span id="crosshair" class="crosshair" aria-live="off"></span>
+          <span class="hint">Alt-click (Option-click) a price to put it in the ticket. Drag a line to change it, × to cancel or close.</span>
+        </p>
+      </section>
+      <aside class="side" aria-label="Order entry">
+        <tdk-trade-buttons id="buttons" quantity="10"></tdk-trade-buttons>
+        <tdk-order-ticket id="ticket" kind="limit" quantity="10"></tdk-order-ticket>
+      </aside>
+      <tdk-account-panel id="panel" class="panel"></tdk-account-panel>
+    </main>
+
+    <tdk-notifications id="notifications" placement="bottom-end"></tdk-notifications>
+
+    <dialog id="exits-dialog" aria-labelledby="exits-title">
+      <form id="exits-form" method="dialog" novalidate>
+        <h2 id="exits-title">Take-profit and stop-loss</h2>
+        <p id="exits-position" class="hint"></p>
+        <label class="control">
+          <span>Take-profit</span>
+          <input id="exits-take-profit" inputmode="decimal" placeholder="None" />
+        </label>
+        <label class="control">
+          <span>Stop-loss</span>
+          <input id="exits-stop-loss" inputmode="decimal" placeholder="None" />
+        </label>
+        <p id="exits-error" class="error" role="alert"></p>
+        <div class="dialog-actions">
+          <button id="exits-save" class="button primary" type="submit" value="save">Save</button>
+          <button class="button" type="submit" value="cancel" formnovalidate>Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

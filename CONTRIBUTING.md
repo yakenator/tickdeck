@@ -15,8 +15,10 @@
 | Command | What it does |
 |---|---|
 | `pnpm build` | Builds every package (ESM and type declarations) in dependency order |
-| `pnpm typecheck` | Type-checks every package. Run `pnpm build` first, because packages resolve each other through their `dist` output |
+| `pnpm typecheck` | Type-checks every package and example. Run `pnpm build` first, because packages resolve each other through their `dist` output |
 | `pnpm test` | Runs the test suites |
+| `pnpm build:examples` | Type-checks and builds the example apps in `examples/` (after `pnpm build`) |
+| `pnpm dev:vanilla`, `pnpm dev:react`, `pnpm dev:vue` | Builds the packages, then starts an example's dev server |
 | `pnpm clean` | Removes build output |
 | `pnpm changeset` | Records a release note for your change |
 

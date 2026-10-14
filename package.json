@@ -8,10 +8,14 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm -r --filter \"./packages/**\" build",
+    "build:examples": "pnpm -r --filter \"./examples/**\" build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "clean": "rm -rf packages/*/dist packages/*/coverage",
+    "dev:vanilla": "pnpm build && pnpm --filter example-vanilla dev",
+    "dev:react": "pnpm build && pnpm --filter example-react dev",
+    "dev:vue": "pnpm build && pnpm --filter example-vue dev",
+    "clean": "rm -rf packages/*/dist packages/*/coverage examples/*/dist",
     "changeset": "changeset"
   },
   "devDependencies": {

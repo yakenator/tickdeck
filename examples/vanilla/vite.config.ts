@@ -1,0 +1,6 @@
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  // The chart engine alone is a few hundred kB.
+  build: { target: 'es2022', chunkSizeWarningLimit: 1000 },
+});
