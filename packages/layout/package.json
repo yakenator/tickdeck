@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/layout",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Multi-chart layouts with linked charts for tickdeck (planned for P2; type sketches only).",
   "keywords": [
     "tickdeck",

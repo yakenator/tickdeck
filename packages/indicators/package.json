@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/indicators",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Indicators and a custom indicator API for tickdeck charts (planned for P2; type sketches only).",
   "keywords": [
     "tickdeck",

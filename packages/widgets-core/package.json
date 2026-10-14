@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/widgets-core",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Headless controllers for the tickdeck trading widgets: account panel, order ticket, trade buttons and notifications.",
   "keywords": [
     "tickdeck",

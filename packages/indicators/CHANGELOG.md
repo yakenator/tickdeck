@@ -1,5 +1,16 @@
 # @tickdeck/indicators
 
+## 0.1.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [b82b8b3]
+- Updated dependencies [b82b8b3]
+- Updated dependencies [b82b8b3]
+- Updated dependencies [1992b83]
+- Updated dependencies [b82b8b3]
+  - @tickdeck/chart@0.1.0-alpha.2
+
 ## 0.1.0-alpha.1
 
 ### Patch Changes

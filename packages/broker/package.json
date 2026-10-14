@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/broker",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Broker adapter contract, order lifecycle, acknowledgement deadlines, BrokerSession and a mock broker for tickdeck.",
   "keywords": [
     "tickdeck",
