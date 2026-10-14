@@ -9,7 +9,8 @@
     "node": ">=24"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "storybook"
   ],
   "scripts": {
     "install:all": "npm install --no-audit --no-fund",
@@ -18,9 +19,12 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test:node": "npm run test --workspace apps/node",
     "test:e2e": "node scripts/site.mjs && playwright test",
+    "test:storybook": "npm run test:storybook --workspace storybook",
     "verify": "node scripts/verify.mjs",
     "site": "node scripts/site.mjs",
     "preview": "node scripts/serve.mjs",
+    "storybook": "npm run storybook --workspace storybook",
+    "build-storybook": "npm run build-storybook --workspace storybook",
     "update": "node scripts/update.mjs"
   },
   "devDependencies": {

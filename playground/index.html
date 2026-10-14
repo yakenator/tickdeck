@@ -196,7 +196,8 @@
       <p class="lead">
         Every way to adopt tickdeck, each in a small app that installs the published packages from the public npm registry at one pinned
         version, exactly as an external project would. Each release is checked here: install, build, type check, Node tests and a browser
-        run that places a limit order with take-profit and stop-loss, fills it and closes it at the take-profit. Everything runs on
+        run that places a limit order with take-profit and stop-loss, fills it and closes it at the take-profit, plus every Storybook
+        story as an interaction and accessibility test. Everything runs on
         <code>MockFeed</code> and <code>MockBroker</code>, so no market data or broker account is needed.
       </p>
     </header>
@@ -336,6 +337,29 @@ await feed.setQuote('MOCK:ACME', { bid: 99.47, ask: 99.49 }); // fills the entry
 }</code></pre>
             <div class="links">
               <a href="https://github.com/yakenator/tickdeck/tree/main/playground/apps/types">Source</a>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Storybook</h2>
+            <p>
+              Every element and the chart in known states: each order type, exits as prices or ticks, validation errors, the review
+              step, amend mode, a busy ticket and an acknowledgement timeout, empty and loaded panels, every reason a trade button is
+              disabled, each notification level, every chart style and scale, and a full trading screen. Each story is also a browser
+              test with interactions and accessibility checks.
+            </p>
+<pre><code>// Each story builds its own deterministic state:
+// MockFeed (seed 7, no ticks) + MockBroker + BrokerSession on a fixed clock.
+export const AmendMode = {
+  parameters: { scenario: { state: 'working' } },
+  play: async ({ canvasElement, loaded }) =&gt; {
+    const ticket = canvasElement.querySelector('tdk-order-ticket');
+    await ticket.amend(loaded.scenario.session.orders[0]);
+  },
+};</code></pre>
+            <div class="links">
+              <a class="open" href="./storybook/">Open Storybook</a>
+              <a href="https://github.com/yakenator/tickdeck/tree/main/playground/storybook">Source</a>
             </div>
           </article>
         </div>

@@ -34,6 +34,7 @@ export default defineConfig({
     { name: 'vanilla', testMatch: /(trading|recipes)\.spec\.ts/, use: { baseURL: `${SITE}vanilla/` } },
     { name: 'react', testMatch: /(trading|recipes)\.spec\.ts/, use: { baseURL: `${SITE}react/` } },
     { name: 'vue', testMatch: /(trading|recipes)\.spec\.ts/, use: { baseURL: `${SITE}vue/` } },
-    { name: 'landing', testMatch: 'landing.spec.ts', use: { baseURL: SITE } },
+    // The hosted site: the landing page and the Storybook build.
+    { name: 'site', testMatch: /(landing|storybook-site)\.spec\.ts/, use: { baseURL: SITE } },
   ],
 });

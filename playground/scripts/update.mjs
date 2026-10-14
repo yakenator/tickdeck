@@ -29,14 +29,14 @@ async function resolveVersion(input) {
 }
 
 const HEADER = [
-  '| Date (UTC) | Version | Install | Build | Typecheck | Node | E2E cdn | E2E vanilla | E2E react | E2E vue | Landing | Notes |',
-  '|---|---|---|---|---|---|---|---|---|---|---|---|',
+  '| Date (UTC) | Version | Install | Build | Typecheck | Node | Storybook | E2E cdn | E2E vanilla | E2E react | E2E vue | Site | Notes |',
+  '|---|---|---|---|---|---|---|---|---|---|---|---|---|',
 ];
 
 function appendResult({ version, install, checks, e2e, notes }) {
   if (!existsSync(resultsFile)) writeFileSync(resultsFile, `# Playground results\n\n${HEADER.join('\n')}\n`);
   const date = new Date().toISOString().slice(0, 16).replace('T', ' ');
-  const cells = [date, version, install, checks.build, checks.typecheck, checks.node, ...E2E_PROJECTS.map((project) => e2e[project])];
+  const cells = [date, version, install, checks.build, checks.typecheck, checks.node, checks.storybook, ...E2E_PROJECTS.map((project) => e2e[project])];
   const note = notes.join('; ').replaceAll('|', '\\|').replaceAll('\n', ' ');
   const row = `| ${cells.map((cell) => cell ?? 'skip').join(' | ')} | ${note} |`;
   const text = readFileSync(resultsFile, 'utf8');

@@ -15,6 +15,9 @@ export const APPS = readdirSync(path.join(root, 'apps'), { withFileTypes: true }
   .map((entry) => entry.name)
   .sort();
 
+/** Every npm workspace: the apps, then Storybook. `dir` is relative to the playground. */
+export const WORKSPACES = [...APPS.map((app) => ({ name: app, dir: `apps/${app}` })), { name: 'storybook', dir: 'storybook' }];
+
 export const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 /** `@tickdeck/<name>@<version>` in CDN URLs and install commands. */
 const PINNED = /(@tickdeck\/[a-z-]+@)\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?/g;
@@ -33,13 +36,13 @@ export function writeVersion(version) {
 
 /** Text files that mention the version: the CDN page, the landing page and the READMEs. */
 function textFiles() {
-  return ['index.html', 'README.md', 'apps/cdn/index.html', ...APPS.map((app) => `apps/${app}/README.md`)].filter((file) =>
+  return ['index.html', 'README.md', 'apps/cdn/index.html', ...WORKSPACES.map(({ dir }) => `${dir}/README.md`)].filter((file) =>
     existsSync(path.join(root, file)),
   );
 }
 
 /**
- * Applies `version` to every app's `@tickdeck/*` dependencies, the CDN URLs and
+ * Applies `version` to the `@tickdeck/*` dependencies of every workspace, the CDN URLs and
  * the snippets. Returns the files that differ; writes them unless `check` is set.
  */
 export function syncVersion(version, { check = false } = {}) {
@@ -51,8 +54,8 @@ export function syncVersion(version, { check = false } = {}) {
     if (!check) writeFileSync(full, next);
   };
 
-  for (const app of APPS) {
-    const file = `apps/${app}/package.json`;
+  for (const { dir } of WORKSPACES) {
+    const file = `${dir}/package.json`;
     const pkg = JSON.parse(readFileSync(path.join(root, file), 'utf8'));
     for (const field of ['dependencies', 'devDependencies']) {
       for (const name of Object.keys(pkg[field] ?? {})) {
@@ -92,7 +95,7 @@ export function run(command, args, { cwd = root, env = {}, quiet = false } = {})
   });
 }
 
-/** The scripts an app's package.json defines. */
-export function appScripts(app) {
-  return JSON.parse(readFileSync(path.join(root, 'apps', app, 'package.json'), 'utf8')).scripts ?? {};
+/** The scripts a workspace's package.json defines. */
+export function workspaceScripts(dir) {
+  return JSON.parse(readFileSync(path.join(root, dir, 'package.json'), 'utf8')).scripts ?? {};
 }

@@ -1,11 +1,13 @@
-// Builds, type-checks and tests every app against the installed tickdeck version.
+// Builds, type-checks and tests every workspace against the installed tickdeck version.
 // `npm run verify` runs it directly; scripts/update.mjs imports `verify` and records the result.
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { APPS, WEB_APPS, appScripts, readVersion, root, run } from './lib.mjs';
+import { WEB_APPS, WORKSPACES, readVersion, root, run, workspaceScripts } from './lib.mjs';
 
-export const E2E_PROJECTS = [...WEB_APPS, 'landing'];
+/** Playwright projects: the trading flow per web app, then the hosted site (landing page and Storybook). */
+export const E2E_PROJECTS = [...WEB_APPS, 'site'];
 const E2E_JSON = path.join(root, 'e2e-report', 'results.json');
+const STORYBOOK_JSON = path.join(root, 'e2e-report', 'storybook.json');
 
 const ERROR_LINE = /error TS\d+|Error:|Error \[|failed to resolve|Cannot find|AssertionError|FAIL /;
 
@@ -25,17 +27,17 @@ export function reason(output) {
 /** "build react, vue: <reason>": failures with the same reason on one line. */
 function group(step, failures) {
   const byReason = new Map();
-  for (const { app, reason: why } of failures) byReason.set(why, [...(byReason.get(why) ?? []), app]);
-  return [...byReason].map(([why, apps]) => `${step} ${apps.join(', ')}: ${why}`);
+  for (const { name, reason: why } of failures) byReason.set(why, [...(byReason.get(why) ?? []), name]);
+  return [...byReason].map(([why, names]) => `${step} ${names.join(', ')}: ${why}`);
 }
 
-/** Runs `script` in every app that defines it. Resolves with the apps that failed and why. */
-async function eachApp(script) {
+/** Runs `script` in every workspace that defines it. Resolves with the workspaces that failed and why. */
+async function eachWorkspace(script) {
   const failed = [];
-  for (const app of APPS) {
-    if (!appScripts(app)[script]) continue;
-    const result = await run('npm', ['run', script, '--workspace', `apps/${app}`]);
-    if (!result.ok) failed.push({ app, reason: reason(result.output) });
+  for (const { name, dir } of WORKSPACES) {
+    if (!workspaceScripts(dir)[script]) continue;
+    const result = await run('npm', ['run', script, '--workspace', dir]);
+    if (!result.ok) failed.push({ name, reason: reason(result.output) });
   }
   return failed;
 }
@@ -43,8 +45,8 @@ async function eachApp(script) {
 /** Status per Playwright project from the JSON report: pass, fail, flaky or skip. */
 function e2eStatus() {
   const status = Object.fromEntries(E2E_PROJECTS.map((project) => [project, 'skip']));
-  if (!existsSync(E2E_JSON)) return status;
   const failures = [];
+  if (!existsSync(E2E_JSON)) return { status, failures };
   const visit = (suite) => {
     for (const spec of suite.specs ?? []) {
       for (const test of spec.tests ?? []) {
@@ -60,7 +62,29 @@ function e2eStatus() {
     for (const child of suite.suites ?? []) visit(child);
   };
   for (const suite of JSON.parse(readFileSync(E2E_JSON, 'utf8')).suites ?? []) visit(suite);
-  return Object.assign(status, { failures });
+  return { status, failures };
+}
+
+/** Every story as a Vitest browser test: render, interactions, accessibility checks. */
+async function storybookTests(notes) {
+  rmSync(STORYBOOK_JSON, { force: true });
+  const result = await run(
+    'npx',
+    ['vitest', 'run', '--project', 'storybook', '--reporter=default', '--reporter=json', `--outputFile=${STORYBOOK_JSON}`],
+    { cwd: path.join(root, 'storybook') },
+  );
+  if (existsSync(STORYBOOK_JSON)) {
+    const report = JSON.parse(readFileSync(STORYBOOK_JSON, 'utf8'));
+    notes.push(`storybook ${report.numPassedTests}/${report.numTotalTests} stories`);
+    for (const file of report.testResults ?? []) {
+      for (const test of file.assertionResults ?? []) {
+        if (test.status === 'failed') notes.push(`storybook ${path.basename(file.name, '.stories.ts')} > ${test.title}`);
+      }
+    }
+  } else if (!result.ok) {
+    notes.push(`storybook: ${reason(result.output)}`);
+  }
+  return result.ok ? 'pass' : 'fail';
 }
 
 /**
@@ -74,11 +98,11 @@ export async function verify() {
   const versionCheck = await run('node', ['scripts/sync-version.mjs', '--check']);
   if (!versionCheck.ok) notes.push('files out of sync with tickdeck.version');
 
-  const buildFailures = await eachApp('build');
+  const buildFailures = await eachWorkspace('build');
   checks.build = buildFailures.length === 0 ? 'pass' : 'fail';
   notes.push(...group('build', buildFailures));
 
-  const typeFailures = await eachApp('typecheck');
+  const typeFailures = await eachWorkspace('typecheck');
   checks.typecheck = typeFailures.length === 0 ? 'pass' : 'fail';
   notes.push(...group('typecheck', typeFailures));
 
@@ -86,13 +110,15 @@ export async function verify() {
   checks.node = node.ok ? 'pass' : 'fail';
   if (!node.ok) notes.push(`node: ${reason(node.output)}`);
 
+  checks.storybook = await storybookTests(notes);
+
   let e2e = Object.fromEntries(E2E_PROJECTS.map((project) => [project, 'skip']));
   const site = buildFailures.length === 0 ? await run('node', ['scripts/site.mjs']) : undefined;
   if (site?.ok) {
     // A report from an earlier run must not stand in for this one.
     rmSync(E2E_JSON, { force: true });
     const playwright = await run('npx', ['playwright', 'test']);
-    const { failures, ...status } = e2eStatus();
+    const { status, failures } = e2eStatus();
     e2e = status;
     notes.push(...failures.map((failure) => `e2e ${failure}`));
     if (!playwright.ok && failures.length === 0) notes.push(`e2e: ${reason(playwright.output)}`);

@@ -1,6 +1,6 @@
-// Assembles dist-site/: the landing page at the root and every web app below it
-// (cdn/, vanilla/, react/, vue/). All links are relative, so the site works at
-// any path, such as /tickdeck/ on GitHub Pages.
+// Assembles dist-site/: the landing page at the root, every web app below it
+// (cdn/, vanilla/, react/, vue/) and the Storybook build (storybook/). All links
+// are relative, so the site works at any path, such as /tickdeck/ on GitHub Pages.
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { WEB_APPS, readVersion, resultsFile, root, siteDir } from './lib.mjs';
@@ -63,4 +63,12 @@ for (const app of WEB_APPS) {
   cpSync(dist, target, { recursive: true });
 }
 
-console.log(`dist-site/ is ready with tickdeck ${readVersion()}: index.html, ${WEB_APPS.map((app) => `${app}/`).join(', ')}`);
+// Storybook's static build, at storybook/ next to the apps.
+const storybook = path.join(root, 'storybook', 'dist');
+if (!existsSync(path.join(storybook, 'index.html'))) {
+  console.error('storybook/dist is missing. Run `npm run build` first.');
+  process.exit(1);
+}
+cpSync(storybook, path.join(siteDir, 'storybook'), { recursive: true });
+
+console.log(`dist-site/ is ready with tickdeck ${readVersion()}: index.html, ${[...WEB_APPS, 'storybook'].map((name) => `${name}/`).join(', ')}`);
