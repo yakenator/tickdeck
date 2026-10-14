@@ -2,7 +2,7 @@
 
 React components for the tickdeck widgets. They render the `tdk-*` custom elements from `@tickdeck/elements`, set rich props (session, feed, controller, arrays) as element properties and subscribe callback props to the elements' events through a ref, so they behave the same on React 18 and 19.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Alpha: APIs may still change between releases.
 
 ## Install
 
@@ -49,7 +49,7 @@ export function Trading() {
 }
 ```
 
-Callbacks receive the element's `CustomEvent`; the payload is `event.detail`. For the cancelable events (`onCancelOrder`, `onClosePosition`, `onReversePosition`), `event.preventDefault()` stops the action. A `ref` gives the element itself, for example `amend(order)` on the ticket.
+Callbacks receive the element's `CustomEvent`; the payload is `event.detail`. For the cancelable events (`onCancelOrder`, `onClosePosition`, `onReversePosition`), `event.preventDefault()` stops the action. A `ref` gives the element itself, for example `amend(order)` or `usePrice(price)` on the ticket.
 
 Other props (`id`, `className`, `style`, `aria-*`, `children`) go to the element.
 

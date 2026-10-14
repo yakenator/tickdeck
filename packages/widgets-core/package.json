@@ -1,8 +1,20 @@
 {
   "name": "@tickdeck/widgets-core",
   "version": "0.0.0",
-  "description": "Headless controllers for tickdeck trading widgets: account panel, order ticket, trade buttons and notifications.",
+  "description": "Headless controllers for the tickdeck trading widgets: account panel, order ticket, trade buttons and notifications.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "headless",
+    "order-ticket",
+    "account-panel",
+    "controllers",
+    "widgets"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/widgets-core#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

@@ -1,8 +1,19 @@
 {
   "name": "@tickdeck/vue",
   "version": "0.0.0",
-  "description": "Vue components for tickdeck.",
+  "description": "Vue 3 components for the tickdeck trading widgets.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "vue",
+    "trading-ui",
+    "order-ticket",
+    "web-components"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/vue#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

@@ -1,8 +1,20 @@
 {
   "name": "@tickdeck/broker",
   "version": "0.0.0",
-  "description": "Broker adapter contract, order tracking and a mock broker for tickdeck.",
+  "description": "Broker adapter contract, order lifecycle, acknowledgement deadlines, BrokerSession and a mock broker for tickdeck.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "broker",
+    "orders",
+    "positions",
+    "order-management",
+    "mock-broker"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/broker#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

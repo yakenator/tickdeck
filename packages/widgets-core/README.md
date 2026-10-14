@@ -2,7 +2,7 @@
 
 Headless controllers behind the tickdeck trading widgets: the account panel, order ticket, trade buttons and notifications. Each one holds observable state, validates input, computes derived values and sends commands through a `BrokerSession`. There is no DOM access, so the controllers run in Node, workers and tests, and you can drive your own UI from them.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Alpha: APIs may still change between releases.
 
 ## Install
 

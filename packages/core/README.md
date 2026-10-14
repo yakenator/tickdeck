@@ -2,7 +2,7 @@
 
 Shared trading types, decimal-safe price and quantity math, and the small reactive primitives every other tickdeck package builds on. No DOM, no framework and no runtime dependencies.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Alpha: APIs may still change between releases.
 
 ## Install
 

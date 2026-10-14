@@ -2,7 +2,7 @@
 
 Vue 3 components for the tickdeck widgets. They render the `tdk-*` custom elements from `@tickdeck/elements`, bind rich props as element properties and re-emit the elements' events with their detail as typed emits.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Alpha: APIs may still change between releases.
 
 ## Install
 

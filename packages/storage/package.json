@@ -1,8 +1,18 @@
 {
   "name": "@tickdeck/storage",
   "version": "0.0.0",
-  "description": "Persistence adapters for tickdeck layouts, templates and settings.",
+  "description": "Persistence contract for tickdeck layouts, templates and settings (planned for P2; type sketches only).",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "storage",
+    "persistence",
+    "settings"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/storage#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

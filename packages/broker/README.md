@@ -2,7 +2,7 @@
 
 The broker adapter contract (requests out, updates in), an order state machine, acknowledgement deadlines, the `BrokerSession` that keeps tickdeck's view of trading state, and a `MockBroker` that simulates execution against any quote stream.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Alpha: APIs may still change between releases.
 
 ## Install
 

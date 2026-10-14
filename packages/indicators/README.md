@@ -2,7 +2,7 @@
 
 Built-in technical indicators and an API for defining your own: inputs, outputs, plot styles and a compute function.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Planned for P2. This alpha holds type sketches only; nothing is implemented yet.
 
 ## Install
 

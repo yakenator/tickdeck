@@ -1,8 +1,21 @@
 {
   "name": "@tickdeck/datafeed",
   "version": "0.0.0",
-  "description": "Market data feed contract and reference adapters for tickdeck.",
+  "description": "Market data feed contract, timeframes, order book helpers, a mock feed and an HTTP polling feed for tickdeck.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "market-data",
+    "datafeed",
+    "ohlc",
+    "candles",
+    "quotes",
+    "order-book"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/datafeed#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

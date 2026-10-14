@@ -1,8 +1,20 @@
 {
   "name": "@tickdeck/elements",
   "version": "0.0.0",
-  "description": "tickdeck widgets as standard Web Components (tdk-* custom elements).",
+  "description": "tickdeck trading widgets as standard Web Components: order ticket, account panel, trade buttons and notifications.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "web-components",
+    "custom-elements",
+    "lit",
+    "order-ticket",
+    "trading-ui"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/elements#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

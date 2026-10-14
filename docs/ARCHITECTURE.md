@@ -1,6 +1,6 @@
 # tickdeck architecture
 
-> Pre-alpha. This document describes the target design. Most of it is not implemented yet, and names may change.
+> Alpha. P1, the trading MVP, is built as described here. Sections about later phases describe the target design, and names may still change.
 
 ## Goals
 
@@ -38,35 +38,37 @@ An arrow `A → B` means "A depends on B".
 
 ```
 core           (no dependencies)
-chart-engine   (no tickdeck dependencies)
+chart-engine   (no dependencies)
 datafeed     → core
 broker       → core
 storage      → core
-chart        → core, chart-engine
+chart        → core, datafeed, broker, chart-engine
 drawings     → chart
 indicators   → chart
 layout       → chart
-widgets-core → core, broker, datafeed
+widgets-core → core, broker, datafeed (types only)
 elements     → widgets-core, lit
 react        → elements   (peer: react ^18 || ^19)
 vue          → elements   (peer: vue ^3.4)
 all          → every package except chart-engine, react and vue
 ```
 
+`chart` uses `datafeed` for timeframes and the feed contract, and `broker` for the trading overlay (order states and P&L math; the session itself is passed in). `widgets-core` takes a `MarketFeed` but only needs its type.
+
 | Package | Responsibility |
 |---|---|
-| `core` | Shared types (bars, sides, instruments), the typed event emitter, observable values and other small primitives. No dependencies. |
+| `core` | Shared trading types (bars, sides, instruments, quotes), exact decimal math for prices, quantities and money (on `BigInt`), trading sessions, the typed event emitter, observable values and other small primitives. No dependencies. |
 | `datafeed` | The data feed contract, plus a mock feed and an HTTP polling adapter (WebSocket streaming follows in P2). |
 | `chart-engine` | Canvas rendering engine, derived from KLineChart by liihuu (Apache-2.0) and being refactored for tickdeck. It has no tickdeck dependencies. |
-| `chart` | Chart model, series styles, price scale modes, panes, sessions and event markers. The only package that imports `chart-engine`, so the engine can change without affecting anything above `chart`. |
+| `chart` | The chart view (`createChartView`: series styles, price scale modes, history paging, realtime bars, themes) and the trading overlay (`attachTrading`: order, exit and position lines, fill markers, drag to amend, cancel and close). Panes, sessions and event markers follow. The only package that imports `chart-engine`, so the engine can change without affecting anything above `chart`. |
 | `drawings` | Drawing tool registry (anchors, editing, locking, grouping, snapping) and serialization. |
 | `indicators` | Built-in indicators and the custom indicator API: inputs, outputs, plot styles and a compute function. |
 | `layout` | Grids of up to eight charts, and linking of instrument, timeframe, crosshair, time and visible range across them. |
 | `broker` | The broker adapter contract, order and position tracking, acknowledgement deadlines and a mock broker. |
 | `storage` | Persistence contract and adapters (browser storage, REST) for layouts, templates, drawings and settings. |
-| `widgets-core` | One headless controller per widget. |
+| `widgets-core` | One headless controller per widget: `AccountPanelController`, `OrderTicketController`, `TradeButtonsController`, `NotificationCenter`. |
 | `elements` | `tdk-*` custom elements built with Lit. |
-| `react`, `vue` | Framework components and, later, hooks and composables that expose controllers. |
+| `react`, `vue` | Framework components for the elements and, later, hooks and composables that expose controllers. |
 | `all` | Re-exports every framework-agnostic package except `chart-engine` (it stays behind `chart`), registers all elements and ships the CDN bundle. |
 
 Rules:
@@ -121,33 +123,65 @@ Principles:
 
 Every widget is made of three pieces:
 
-1. **Controller** (`widgets-core`). A plain class that holds widget state, validates input, computes derived values (cost, risk, P&L, rounding to tick size), issues broker commands and emits `change` events. It receives a `WidgetContext` with the feed, broker and settings, and has no DOM access.
+1. **Controller** (`widgets-core`). A plain class that holds widget state, validates input, computes derived values (cost, risk, P&L, rounding to tick size) and issues broker commands through the session. It never touches the DOM.
+   - It receives a `WidgetContext { session, feed?, scheduler?, timeZone? }`: a started `BrokerSession` (every action goes through it, never to the connector), an optional feed for quotes and instrument metadata (any `MarketFeed` fits), an optional clock for timers, and the timezone for displayed times.
+   - Its `state` is a read-only observable (`ReadonlyObservableValue` from `core`). State objects are replaced on every change, never mutated, so a view re-renders when `state.value` changes.
+   - Action methods change state or send commands. Commands resolve once the broker confirmed them and never throw for broker problems; failures land in the state and in a typed event (`on`, `once`). `dispose()` releases subscriptions and timers.
 2. **Element** (`elements`). A `tdk-*` custom element that renders a controller's state inside Shadow DOM.
+   - It takes `session` and `feed` and creates (and disposes) its own controller, or renders a `controller` you pass in and keep.
    - Rich data (objects, arrays, controllers) is set as properties. Simple configuration also works as attributes.
    - User actions are dispatched as `CustomEvent`s named `tdk-<action>` that bubble and are `composed`, so they cross shadow boundaries.
    - `@tickdeck/elements` exports the element classes without registering them. `@tickdeck/elements/define` registers every element and skips tags that are already defined. Registration modules are the only files listed in `sideEffects`.
 3. **Wrappers** (`react`, `vue`). Components that map props, events and refs to framework idioms. Hooks and composables will expose the controllers for fully custom UIs.
 
-Planned elements:
+The chart is not an element yet: `createChartView(container, options)` from `chart` renders into any sized container, and `attachTrading(view, session)` draws the session's trading state on it. Applications connect the pieces with a few lines (the panel's `tdk-amend` to the ticket's `amend`, a chart price to the ticket's `usePrice`, one instrument for chart, ticket and buttons); `examples/` shows each.
 
-| Element | Purpose |
-|---|---|
-| `tdk-chart-layout` | One or more linked charts with toolbars |
-| `tdk-order-ticket` | Order entry with quantity, price, duration and protective exits |
-| `tdk-account-panel` | Orders, positions, history, notifications and account summary |
-| `tdk-depth-ladder` | Order book by price level, with click-to-trade |
-| `tdk-watchlist` | Instrument lists with live quotes |
-| `tdk-trade-buttons` | Buy and sell buttons showing bid and ask |
-| `tdk-instrument-details` | Quote, session and daily range for the active instrument |
-| `tdk-news` | Headlines for the active instrument |
+| Element | Purpose | Status |
+|---|---|---|
+| `tdk-order-ticket` | Order entry with quantity, price, duration, protective exits, estimates, an optional review step and amend mode | P1 |
+| `tdk-account-panel` | Account summary, working and past orders, positions and fills, with cancel, modify, close, reverse and exit editing | P1 |
+| `tdk-trade-buttons` | Buy and sell at market with live bid, ask and spread | P1 |
+| `tdk-notifications` | Toasts and a log for fills, rejections, broker notices, timeouts and connection changes | P1 |
+| `tdk-chart-layout` | One or more linked charts with toolbars | Planned (P2) |
+| `tdk-depth-ladder` | Order book by price level, with click-to-trade | Planned (P2) |
+| `tdk-watchlist` | Instrument lists with live quotes | Planned (P2) |
+| `tdk-instrument-details` | Quote, session and daily range for the active instrument | Planned (P3) |
+| `tdk-news` | Headlines for the active instrument | Planned (P3) |
 
 ## Theming
 
-- **CSS custom properties.** Every themable value is a `--tdk-*` property. Custom properties inherit into shadow roots, so you can set them on `:root` or on any container to theme one region.
-- **Token names.** `--tdk-color-<role>` (for example `surface`, `text`, `border`, `accent`, `buy`, `sell`), `--tdk-space-<n>`, `--tdk-radius`, `--tdk-font-family` and `--tdk-font-size-<n>`.
-- **Parts.** Elements expose structural nodes through `part` attributes, so you can restyle them from outside with `::part()`. Each element documents its parts.
-- **Presets.** Light and dark themes are just token sets, and a custom theme overrides tokens. The chart reads the same tokens, so the canvas matches the surrounding UI.
-- Colors are flat and solid. The default themes use no gradients.
+- **CSS custom properties.** Every themable value is a `--tdk-*` property. Custom properties inherit into shadow roots, so you can set them on `:root` or on any container to theme one region. Values you set win over the light and dark presets.
+- **Parts.** Elements expose structural nodes through `part` attributes, so you can restyle them from outside with `::part()`. Each element documents its parts in the `elements` README.
+- **Presets.** Light and dark themes are token sets: `theme="light"`, `"dark"` or `"auto"` on an element, `setTheme('light' | 'dark')` on a chart view. A custom theme overrides tokens.
+- **Chart.** The chart reads the same tokens from its container, when it is created and on every `setTheme` call, so the canvas matches the surrounding UI. Explicit `colors` passed to the chart win over tokens.
+- Colors are flat and solid. The default themes use no gradients; the area series fill is one semi-transparent color.
+
+| Token | Used by | Role |
+|---|---|---|
+| `--tdk-color-surface` | elements, chart | Backgrounds; the chart background |
+| `--tdk-color-surface-2` | elements | Raised areas, neutral buttons |
+| `--tdk-color-text` | elements, chart | Text |
+| `--tdk-color-text-muted` | elements, chart | Labels and secondary text; chart axis labels and crosshair |
+| `--tdk-color-border` | elements, chart | Borders and rules; chart axis lines |
+| `--tdk-color-grid` | chart | Grid lines |
+| `--tdk-color-accent` | elements, chart | Selected options, primary buttons; the line and area series |
+| `--tdk-color-on-accent` | elements | Text on accent |
+| `--tdk-color-buy`, `--tdk-color-sell` | elements, chart | Buy and sell buttons and sides; rising and falling bars, buy and sell orders and fills |
+| `--tdk-color-on-buy`, `--tdk-color-on-sell` | elements | Text on buy and sell |
+| `--tdk-color-buy-text`, `--tdk-color-sell-text` | elements | Buy, long, sell and short as text |
+| `--tdk-color-positive`, `--tdk-color-negative` | elements | Gains and losses |
+| `--tdk-color-info`, `--tdk-color-success`, `--tdk-color-warning`, `--tdk-color-error` | elements | Notifications, results, warnings and invalid fields |
+| `--tdk-color-focus` | elements | Focus rings |
+| `--tdk-color-take-profit`, `--tdk-color-stop-loss`, `--tdk-color-position` | chart | Take-profit, stop-loss and position lines |
+| `--tdk-font-family` | elements, chart | All text |
+| `--tdk-font-size-1`, `-2`, `-3` | elements | Small text, body text, prices and headings |
+| `--tdk-space-1`, `-2`, `-3` | elements | Spacing |
+| `--tdk-radius` | elements | Corner radius |
+| `--tdk-control-height` | elements | Buttons and fields |
+| `--tdk-z-index-toasts` | `tdk-notifications` | Stacking of the fixed toast stack |
+| `--tdk-notifications-log-height` | `tdk-notifications` | Height of the log list |
+
+The light and dark defaults of each token are listed in the `elements` and `chart` READMEs.
 
 ```css
 :root {
@@ -155,9 +189,10 @@ Planned elements:
   --tdk-color-text: #1b1f24;
   --tdk-color-buy: #1a7f5a;
   --tdk-color-sell: #c4314b;
+  --tdk-color-position: #6d28d9;
 }
 
-tdk-placeholder::part(label) {
+tdk-order-ticket::part(submit-button) {
   font-weight: 600;
 }
 ```
@@ -170,18 +205,20 @@ tdk-placeholder::part(label) {
 - **Peer dependencies.** React and Vue are peer dependencies of their wrappers, so the application's copy is used.
 - **CDN bundle.** `@tickdeck/all/dist/tickdeck.js` is a single minified ES module with every dependency inlined. Load it with `<script type="module">` and use the elements directly.
 - **Custom Elements Manifest.** Planned: `@tickdeck/elements` will ship a generated `custom-elements.json`, which feeds editor completions, wrapper generation and API docs.
-- **Versioning.** Changesets manages per-package semver and generates changelogs. Prereleases go out on the `next` dist-tag, and stable releases on `latest`.
-- **Registry.** Packages are published publicly to npm under the `@tickdeck` scope. Publishing is not automated yet. CI builds, type-checks and tests every push and pull request to `main`.
+- **Versioning.** Changesets manages versions and generates changelogs. All `@tickdeck/*` packages are one fixed group and always share a version. Prereleases come from Changesets pre mode (`0.1.0-alpha.N`, pre tag `alpha`). Until a package has had a stable release, Changesets publishes its prereleases so that `latest` points at the newest one; after that they go out on the `alpha` dist-tag and stable releases on `latest`.
+- **Internal dependencies.** Packages depend on each other with `workspace:*`. Publishing with pnpm (`changeset publish` in this workspace, or `pnpm publish -r`) turns that into the exact version being released; publishing a package directory with plain `npm publish` would not.
+- **Registry.** Packages are published publicly to npm under the `@tickdeck` scope. Publishing is not automated yet. CI builds, type-checks and tests every push and pull request to `main`, and builds the examples.
+- **Examples.** `examples/` holds private Vite apps (vanilla, React, Vue) that are part of the workspace but never published. `pnpm build` builds packages only; `pnpm build:examples` builds the examples.
 - **Toolchain.** Node 24, pnpm via Corepack, TypeScript 5.9, tsup, Vitest.
 
 ## Roadmap
 
-| Phase | Scope | Done when |
-|---|---|---|
-| **P1: Trading MVP** | `core`; mock and HTTP polling feeds; a single chart (candles, bars, line, area) with price scale modes; the broker contract and mock broker; account panel; order ticket (market, limit and stop, with take-profit and stop-loss); trade buttons; order and position lines on the chart; notifications | An order placed against the mock broker goes through fill, position and protective exit, and every step shows up on the chart and in the panels |
-| **P2: Charting depth** | WebSocket feed adapter; up to eight linked charts; watchlist; depth ladder; 40+ indicators; 40+ drawing tools; save and restore; theming | A saved layout restores identically, and the depth ladder stays smooth at dozens of updates per second |
-| **P3: Completeness** | 100+ indicators; the full drawing tool set; Renko, Kagi, point-and-figure, line break, Heikin-Ashi and volume-weighted candles; instrument details, cursor data and news panels; i18n; accessibility; touch and mobile; keyboard shortcuts | At least 90% of the planned feature list is covered |
-| **P4: Optional** | Volume profile; crypto-style order entry; leverage; position netting; multiple exit levels | Built when there is demand |
+| Phase | Status | Scope | Done when |
+|---|---|---|---|
+| **P1: Trading MVP** | Done | `core`; mock and HTTP polling feeds; a single chart (candles, bars, line, area) with price scale modes; the broker contract and mock broker; account panel; order ticket (market, limit and stop, with take-profit and stop-loss); trade buttons; order and position lines on the chart; notifications | An order placed against the mock broker goes through fill, position and protective exit, and every step shows up on the chart and in the panels |
+| **P2: Charting depth** | Next | WebSocket feed adapter; up to eight linked charts; watchlist; depth ladder; 40+ indicators; 40+ drawing tools; save and restore; theming | A saved layout restores identically, and the depth ladder stays smooth at dozens of updates per second |
+| **P3: Completeness** | Planned | 100+ indicators; the full drawing tool set; Renko, Kagi, point-and-figure, line break, Heikin-Ashi and volume-weighted candles; instrument details, cursor data and news panels; i18n; accessibility; touch and mobile; keyboard shortcuts | At least 90% of the planned feature list is covered |
+| **P4: Optional** | Planned | Volume profile; crypto-style order entry; leverage; position netting; multiple exit levels | Built when there is demand |
 
 ## Licensing
 

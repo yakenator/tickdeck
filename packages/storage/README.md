@@ -2,7 +2,7 @@
 
 Persistence contract and adapters (browser storage, REST) for chart layouts, templates, drawings and user settings.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Planned for P2. This alpha holds type sketches only; nothing is implemented yet.
 
 ## Install
 

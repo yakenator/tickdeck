@@ -2,7 +2,7 @@
 
 The market data contract a host application implements (`MarketFeed`), timeframe helpers, an order book helper, and two ready-made feeds: a deterministic `MockFeed` and a configurable `HttpPollingFeed`.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Alpha: APIs may still change between releases.
 
 ## Install
 

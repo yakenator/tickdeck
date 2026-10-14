@@ -1,8 +1,18 @@
 {
   "name": "@tickdeck/indicators",
   "version": "0.0.0",
-  "description": "Indicator registry and custom indicator API for tickdeck charts.",
+  "description": "Indicators and a custom indicator API for tickdeck charts (planned for P2; type sketches only).",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "chart",
+    "indicators",
+    "technical-analysis"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/indicators#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

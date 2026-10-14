@@ -2,7 +2,7 @@
 
 Multi-chart grids (up to eight charts) with optional linking of instrument, timeframe, crosshair, time and visible range.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Planned for P2. This alpha holds type sketches only; nothing is implemented yet.
 
 ## Install
 

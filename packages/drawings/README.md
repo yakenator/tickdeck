@@ -2,7 +2,7 @@
 
 Drawing tool registry, anchors, locking and grouping, plus serialization so drawings can be saved and shared between charts.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Planned for P2. This alpha holds type sketches only; nothing is implemented yet.
 
 ## Install
 

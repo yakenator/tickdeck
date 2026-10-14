@@ -1,8 +1,19 @@
 {
   "name": "@tickdeck/all",
   "version": "0.0.0",
-  "description": "One import for the framework-agnostic tickdeck packages, plus a CDN bundle.",
+  "description": "Every framework-agnostic tickdeck package in one import, plus a self-contained CDN bundle.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "trading-ui",
+    "web-components",
+    "chart",
+    "cdn"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/all#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

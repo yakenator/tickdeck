@@ -2,7 +2,7 @@
 
 tickdeck's trading widgets as standard Web Components (`tdk-*` custom elements built with Lit). They work in plain HTML and in any framework. Each element renders a headless controller from `@tickdeck/widgets-core` inside Shadow DOM.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Alpha: APIs may still change between releases.
 
 ## Install
 

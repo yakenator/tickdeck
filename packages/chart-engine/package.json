@@ -2,7 +2,19 @@
   "name": "@tickdeck/chart-engine",
   "version": "0.0.0",
   "description": "Canvas chart rendering engine for tickdeck, derived from KLineChart.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "chart",
+    "canvas",
+    "candlestick",
+    "financial-chart",
+    "klinecharts"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/chart-engine#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

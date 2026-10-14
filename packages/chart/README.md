@@ -2,7 +2,7 @@
 
 A price chart for one instrument and timeframe, fed by any `MarketFeed`: history pages in as the user scrolls left, realtime bars stream in, and a trading overlay draws a `BrokerSession`'s orders, exits, positions and fills, which the user can drag, cancel and close on the chart. It wraps the tickdeck rendering engine, so the rest of the library never talks to the engine directly.
 
-> Pre-alpha and under construction. APIs will change without notice.
+> Alpha: APIs may still change between releases.
 
 ## Install
 

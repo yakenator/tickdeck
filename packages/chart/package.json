@@ -1,8 +1,21 @@
 {
   "name": "@tickdeck/chart",
   "version": "0.0.0",
-  "description": "Chart view with series styles, price scales, history paging and a trading overlay for tickdeck.",
+  "description": "Price chart for tickdeck: styles, price scales, history paging, realtime bars and a trading overlay for orders, exits and positions.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "chart",
+    "candlestick",
+    "financial-chart",
+    "ohlc",
+    "order-lines",
+    "trading-chart"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/chart#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

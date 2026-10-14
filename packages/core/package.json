@@ -1,8 +1,19 @@
 {
   "name": "@tickdeck/core",
   "version": "0.0.0",
-  "description": "Shared trading types, decimal-safe price and quantity math, the typed event emitter and observable values used by every tickdeck package.",
+  "description": "Trading types, exact decimal math for prices and quantities, trading sessions, typed events and observable values for tickdeck.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "decimal",
+    "orders",
+    "instruments",
+    "typescript"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/core#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",

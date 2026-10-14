@@ -1,8 +1,19 @@
 {
   "name": "@tickdeck/react",
   "version": "0.0.0",
-  "description": "React components for tickdeck.",
+  "description": "React components for the tickdeck trading widgets.",
+  "keywords": [
+    "tickdeck",
+    "trading",
+    "react",
+    "trading-ui",
+    "order-ticket",
+    "web-components"
+  ],
+  "homepage": "https://github.com/yakenator/tickdeck/tree/main/packages/react#readme",
+  "bugs": "https://github.com/yakenator/tickdeck/issues",
   "license": "Apache-2.0",
+  "author": "yakenator",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yakenator/tickdeck.git",
