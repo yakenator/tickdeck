@@ -1,6 +1,6 @@
 # @tickdeck/core
 
-Shared trading types, decimal-safe price and quantity math, and the small reactive primitives every other tickdeck package builds on. No DOM and no framework dependencies; the only runtime dependency is `decimal.js`.
+Shared trading types, decimal-safe price and quantity math, and the small reactive primitives every other tickdeck package builds on. No DOM, no framework and no runtime dependencies.
 
 > Pre-alpha and under construction. APIs will change without notice.
 
@@ -25,7 +25,7 @@ npm install @tickdeck/core
 
 ### Price and quantity math
 
-All helpers take and return plain numbers but compute in decimal, so `0.1 + 0.2` problems never reach a price or a P&L figure.
+All helpers take and return plain numbers but compute in exact decimal arithmetic, so `0.1 + 0.2` problems never reach a price or a P&L figure. Each number is read through its shortest text (`0.1` is exactly one tenth) into a `BigInt` coefficient and a scale; division keeps 34 significant digits.
 
 ```ts
 import { roundToTick, isOnTick, checkQuantity, roundQuantity, addExact } from '@tickdeck/core';

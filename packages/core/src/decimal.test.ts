@@ -105,4 +105,37 @@ describe('exact arithmetic', () => {
   it('refuses division by zero', () => {
     expect(() => divideExact(1, 0)).toThrow(RangeError);
   });
+
+  it('reads numbers through their shortest text, including exponent notation', () => {
+    expect(addExact(1e-7, 2e-7)).toBe(3e-7);
+    expect(addExact(1e21, 1)).toBe(1.000000000000000000001e21);
+    expect(decimalPlaces(1.5e-7)).toBe(8);
+    expect(decimalPlaces(1e21)).toBe(0);
+    expect(roundToTick(0.123456789, 1e-8)).toBe(0.12345679);
+    expect(isOnTick(0.00000003, 1e-8)).toBe(true);
+    expect(multiplyExact(1.1, 1.1)).toBe(1.21);
+  });
+
+  it('divides to the nearest number', () => {
+    expect(divideExact(1, 3)).toBe(1 / 3);
+    expect(divideExact(-2, 3)).toBe(-2 / 3);
+    expect(divideExact(0.3, 0.1)).toBe(3);
+    expect(ticksBetween(1.0843, 1.08437, 0.00001)).toBe(7);
+    expect(ticksBetween(0, 1, 0.3)).toBe(10 / 3);
+  });
+
+  it('formats negative values like Number#toFixed', () => {
+    expect(formatDecimal(-1.005, 2)).toBe('-1.01');
+    expect(formatDecimal(-0.004, 2)).toBe('-0.00');
+    expect(formatDecimal(-0, 2)).toBe('0.00');
+    expect(formatDecimal(1234.5, 0)).toBe('1235');
+    expect(formatDecimal(0.000001, 3)).toBe('0.000');
+    expect(formatDecimal(2.5e-7, 8)).toBe('0.00000025');
+  });
+
+  it('never returns negative zero', () => {
+    expect(roundToTick(-0.001, 0.01)).toBe(0);
+    expect(multiplyExact(-0.5, 0)).toBe(0);
+    expect(addExact(-5, 5)).toBe(0);
+  });
 });
