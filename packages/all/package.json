@@ -28,7 +28,16 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./cdn": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/tickdeck.js"
+    },
+    "./dist/tickdeck.js": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/tickdeck.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -37,24 +46,29 @@
   ],
   "scripts": {
     "build": "tsup && tsup --config tsup.cdn.config.ts && node ../../scripts/copy-legal.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@tickdeck/broker": "workspace:*",
+    "@tickdeck/chart": "workspace:*",
     "@tickdeck/core": "workspace:*",
     "@tickdeck/datafeed": "workspace:*",
-    "@tickdeck/chart": "workspace:*",
     "@tickdeck/drawings": "workspace:*",
+    "@tickdeck/elements": "workspace:*",
     "@tickdeck/indicators": "workspace:*",
     "@tickdeck/layout": "workspace:*",
-    "@tickdeck/broker": "workspace:*",
     "@tickdeck/storage": "workspace:*",
-    "@tickdeck/widgets-core": "workspace:*",
-    "@tickdeck/elements": "workspace:*"
+    "@tickdeck/widgets-core": "workspace:*"
   },
   "engines": {
     "node": ">=20"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "vitest": "^5.0.4"
   }
 }

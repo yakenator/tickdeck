@@ -168,7 +168,7 @@ onBeforeUnmount(() => view?.dispose());
 
 ### CDN, no build step
 
-`@tickdeck/all/dist/tickdeck.js` is one ES module with everything inlined except the framework wrappers. It registers the elements and exports every API.
+`@tickdeck/all/dist/tickdeck.js` is one ES module with everything inlined except the framework wrappers. It registers the elements and exports every API. In an npm project the same file is `@tickdeck/all/cdn`.
 
 ```html
 <div id="chart" style="height: 420px"></div>
@@ -176,7 +176,7 @@ onBeforeUnmount(() => view?.dispose());
 <tdk-account-panel></tdk-account-panel>
 
 <script type="module">
-  import { BrokerSession, MockBroker, MockFeed, attachTrading, createChartView } from 'https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.0/dist/tickdeck.js';
+  import { BrokerSession, MockBroker, MockFeed, attachTrading, createChartView } from 'https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.2/dist/tickdeck.js';
 
   const feed = new MockFeed();
   const session = new BrokerSession(new MockBroker({ feed }));

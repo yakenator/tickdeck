@@ -1,6 +1,6 @@
 # @tickdeck/all
 
-Every framework-agnostic tickdeck package in one import, except the raw rendering engine, which stays behind `@tickdeck/chart`. Importing it registers all `tdk-*` elements. Also ships `dist/tickdeck.js`, a self-contained ES module for use straight from a CDN.
+Every framework-agnostic tickdeck package in one import, except the raw rendering engine, which stays behind `@tickdeck/chart`. Importing it registers all `tdk-*` elements. Also ships `dist/tickdeck.js` (exported as `@tickdeck/all/cdn`), a self-contained ES module for use straight from a CDN.
 
 > Alpha: APIs may still change between releases.
 
@@ -27,7 +27,7 @@ The package re-exports `core`, `datafeed`, `broker`, `chart`, `widgets-core`, `e
 <tdk-notifications placement="bottom-end"></tdk-notifications>
 
 <script type="module">
-  import { BrokerSession, MockBroker, MockFeed, attachTrading, createChartView } from 'https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.0/dist/tickdeck.js';
+  import { BrokerSession, MockBroker, MockFeed, attachTrading, createChartView } from 'https://cdn.jsdelivr.net/npm/@tickdeck/all@0.1.0-alpha.2/dist/tickdeck.js';
 
   const feed = new MockFeed();
   const session = new BrokerSession(new MockBroker({ feed }));
@@ -48,5 +48,13 @@ The package re-exports `core`, `datafeed`, `broker`, `chart`, `widgets-core`, `e
 ```
 
 Pin an exact version in production. Replace `MockFeed` and `MockBroker` with your own `MarketFeed` and `BrokerConnector` (see `@tickdeck/datafeed` and `@tickdeck/broker`).
+
+The same file is part of the npm package, for import maps and for tools that resolve package paths: `@tickdeck/all/cdn` and `@tickdeck/all/dist/tickdeck.js` both point to it, and TypeScript types it like the main entry.
+
+```js
+import { BrokerSession, MockBroker, MockFeed } from '@tickdeck/all/cdn';
+```
+
+It carries its own copy of every dependency, so use it instead of the other `@tickdeck/*` imports, not next to them. `@tickdeck/all/package.json` is exported too.
 
 Part of [tickdeck](https://github.com/yakenator/tickdeck). Licensed under Apache-2.0.
