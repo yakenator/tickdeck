@@ -1,5 +1,14 @@
 # @tickdeck/widgets-core
 
+## 0.1.0-alpha.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @tickdeck/core@0.1.0-alpha.1
+  - @tickdeck/broker@0.1.0-alpha.1
+  - @tickdeck/datafeed@0.1.0-alpha.1
+
 ## 0.1.0-alpha.0
 
 ### Minor Changes

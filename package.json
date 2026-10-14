@@ -16,7 +16,8 @@
     "dev:react": "pnpm build && pnpm --filter example-react dev",
     "dev:vue": "pnpm build && pnpm --filter example-vue dev",
     "clean": "rm -rf packages/*/dist packages/*/coverage examples/*/dist",
-    "changeset": "changeset"
+    "changeset": "changeset",
+    "release": "pnpm clean && pnpm install --frozen-lockfile && pnpm build && pnpm typecheck && pnpm test && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",

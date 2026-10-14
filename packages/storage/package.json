@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/storage",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Persistence contract for tickdeck layouts, templates and settings (planned for P2; type sketches only).",
   "keywords": [
     "tickdeck",

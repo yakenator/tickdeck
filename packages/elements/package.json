@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/elements",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "tickdeck trading widgets as standard Web Components: order ticket, account panel, trade buttons and notifications.",
   "keywords": [
     "tickdeck",

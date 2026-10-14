@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/chart",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Price chart for tickdeck: styles, price scales, history paging, realtime bars and a trading overlay for orders, exits and positions.",
   "keywords": [
     "tickdeck",

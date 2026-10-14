@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/drawings",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Drawing tools for tickdeck charts (planned for P2; type sketches only).",
   "keywords": [
     "tickdeck",

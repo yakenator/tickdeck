@@ -1,6 +1,6 @@
 {
   "name": "@tickdeck/chart-engine",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Canvas chart rendering engine for tickdeck, derived from KLineChart.",
   "keywords": [
     "tickdeck",
