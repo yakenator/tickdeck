@@ -1,0 +1,44 @@
+{
+  "name": "@tickdeck/elements",
+  "version": "0.0.0",
+  "description": "tickdeck widgets as standard Web Components (tdk-* custom elements).",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yakenator/tickdeck.git",
+    "directory": "packages/elements"
+  },
+  "type": "module",
+  "sideEffects": [
+    "./dist/define.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./define": {
+      "types": "./dist/define.d.ts",
+      "import": "./dist/define.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsup && node ../../scripts/copy-legal.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tickdeck/widgets-core": "workspace:*",
+    "lit": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "name": "@tickdeck/all",
+  "version": "0.0.0",
+  "description": "Every framework-agnostic tickdeck package in one import, plus a CDN bundle.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yakenator/tickdeck.git",
+    "directory": "packages/all"
+  },
+  "type": "module",
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/tickdeck.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsup && tsup --config tsup.cdn.config.ts && node ../../scripts/copy-legal.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tickdeck/core": "workspace:*",
+    "@tickdeck/datafeed": "workspace:*",
+    "@tickdeck/chart": "workspace:*",
+    "@tickdeck/drawings": "workspace:*",
+    "@tickdeck/indicators": "workspace:*",
+    "@tickdeck/layout": "workspace:*",
+    "@tickdeck/broker": "workspace:*",
+    "@tickdeck/storage": "workspace:*",
+    "@tickdeck/widgets-core": "workspace:*",
+    "@tickdeck/elements": "workspace:*"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
