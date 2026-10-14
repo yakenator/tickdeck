@@ -36,6 +36,13 @@ Changes that only touch docs, tests or tooling don't need a changeset. At releas
 - `core`, `datafeed`, `broker` and `widgets-core` must not touch the DOM. Their `tsconfig.json` leaves out the DOM library to enforce this.
 - Styles use flat, solid colors (no gradients), and every themable value goes through a `--tdk-*` custom property.
 
+## Refactoring rules
+
+`packages/chart-engine` is derived from KLineChart (Apache-2.0), and its upstream files keep their original license headers.
+
+- **Mark modified upstream files.** When you change an upstream file, add this line to its existing license header comment, once: `Modified by tickdeck contributors.` Apache-2.0 §4(b) requires modified files to say they were changed. Never remove or rewrite an upstream header.
+- **New code gets the tickdeck header.** New files, and files rewritten from scratch without upstream code, start with the tickdeck Apache-2.0 header instead (see `packages/chart-engine/src/common/EventHandler.ts`).
+
 ## License
 
 By contributing, you agree that your contributions are licensed under the [Apache License 2.0](LICENSE).
