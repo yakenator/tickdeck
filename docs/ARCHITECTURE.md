@@ -162,7 +162,7 @@ tdk-placeholder::part(label) {
 ## Build and distribution
 
 - **Output.** Each package builds with tsup from a shared base config (`tsup.base.ts`) to ES modules plus `.d.ts` files, targeting ES2022. Consumers need Node 20 or later, or an evergreen browser.
-- **Package shape.** Each package has an `exports` map with `types` and `import` conditions, `"type": "module"`, and `files` limited to `dist`, `LICENSE` and `NOTICE`. The build copies `LICENSE` and `NOTICE` from the repository root into each package. `chart-engine` keeps its upstream `LICENSE`, takes only the root `NOTICE`, and also ships `licenses/`.
+- **Package shape.** Each package has an `exports` map with `types` and `import` conditions, `"type": "module"`, and `files` limited to `dist`, `LICENSE` and `NOTICE`. The build copies `LICENSE` and `NOTICE` from the repository root into each package. `chart-engine` keeps its upstream `LICENSE` and takes only the root `NOTICE`.
 - **Side effects.** Every package sets `sideEffects: false` except the registration modules: `@tickdeck/elements/define`, and `@tickdeck/all` (its entry and its CDN bundle).
 - **Peer dependencies.** React and Vue are peer dependencies of their wrappers, so the application's copy is used.
 - **CDN bundle.** `@tickdeck/all/dist/tickdeck.js` is a single minified ES module with every dependency inlined. Load it with `<script type="module">` and use the elements directly.

@@ -19,8 +19,7 @@
   "files": [
     "dist",
     "LICENSE",
-    "NOTICE",
-    "licenses"
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsup && node ../../scripts/copy-legal.mjs NOTICE",
