@@ -18,3 +18,34 @@ export {
   type ChartColors,
   type ChartThemeName,
 } from './theme';
+export {
+  attachTrading,
+  type TradingActionErrorEvent,
+  type TradingActionEvent,
+  type TradingOverlay,
+  type TradingOverlayEvents,
+  type TradingOverlayOptions,
+} from './trading/overlay';
+export {
+  buildTradingScene,
+  formatPositionPnl,
+  type FillMarker,
+  type PnlUnit,
+  type PositionPnl,
+  type TradingLine,
+  type TradingLineEdit,
+  type TradingLineGroup,
+  type TradingLineKind,
+  type TradingLineTarget,
+  type TradingScene,
+  type TradingSceneInput,
+  type TradingVisibility,
+} from './trading/scene';
+export {
+  TradingEdits,
+  lineTargetIds,
+  planLineMove,
+  planLineRemoval,
+  runTradingAction,
+  type TradingAction,
+} from './trading/actions';
