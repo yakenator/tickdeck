@@ -10,6 +10,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified by tickdeck contributors.
  */
 
 import type Bounding from '../common/Bounding'
@@ -220,6 +221,13 @@ export default abstract class YAxisImp extends AxisImp implements YAxis {
     })
 
     if (min !== Number.MAX_SAFE_INTEGER && max !== Number.MIN_SAFE_INTEGER) {
+      if (shouldUseCandleData) {
+        // Values the chart keeps in view next to the data, such as order lines.
+        chart.getAutoscaleValues(paneId).forEach((value) => {
+          min = Math.min(min, value)
+          max = Math.max(max, value)
+        })
+      }
       min = Math.min(specifyMin, min)
       max = Math.max(specifyMax, max)
     } else {

@@ -2,6 +2,7 @@
 import { registerOverlay, utils } from '@tickdeck/chart-engine';
 import type { EngineFigure } from '../engine';
 import type { ChartColors } from '../theme';
+import { placeEdgeMarkers, type EdgeMarkerPlace } from './edges';
 import type { FillMarker, TradingLine } from './scene';
 
 export const LINE_OVERLAY = 'tdkTradingLine';
@@ -18,6 +19,8 @@ export interface LineRender {
   formatPrice: (price: number) => string;
   /** P&L text of a position line. */
   pnlText?: string;
+  /** Every line of the overlay, to stack the edge markers of lines outside the visible prices. */
+  lines: () => readonly TradingLine[];
 }
 
 export interface FillRender {
@@ -37,6 +40,14 @@ const LABEL_MARGIN = 8;
 const HIT_HALF_HEIGHT = 5;
 const MARKER_HALF_WIDTH = 5;
 const MARKER_HEIGHT = 8;
+const LABEL_HEIGHT = FONT_SIZE + LABEL_PADDING_Y * 2;
+const EDGE_GAP = 2;
+const EDGE_ARROWS = { top: '\u25b2', bottom: '\u25bc' } as const;
+
+/** What figure callbacks know about the price axis. */
+interface AxisLike {
+  convertToPixel(value: number): number;
+}
 
 export function lineColor(line: TradingLine, colors: ChartColors): string {
   if (line.pending) return colors.pending;
@@ -124,6 +135,36 @@ function axisFigure(render: LineRender, price: number, y: number, width: number,
   };
 }
 
+/** Where this line's edge marker goes, or `undefined` while the line is inside the pane. */
+function edgePlace(render: LineRender, y: number, height: number, yAxis: AxisLike | null | undefined): EdgeMarkerPlace | undefined {
+  if (y >= 0 && y <= height) return undefined;
+  if (!yAxis) return { edge: y < 0 ? 'top' : 'bottom', slot: 0 };
+  const lines = render.lines().map((line) => ({
+    id: line.id,
+    y: line.id === render.line.id ? y : yAxis.convertToPixel(line.price),
+  }));
+  return placeEdgeMarkers(lines, height).get(render.line.id);
+}
+
+/** Middle of an edge marker's label. */
+function edgeY(place: EdgeMarkerPlace, height: number): number {
+  const offset = EDGE_GAP + place.slot * (LABEL_HEIGHT + EDGE_GAP) + LABEL_HEIGHT / 2;
+  return place.edge === 'top' ? offset : height - offset;
+}
+
+/** A compact tag at the pane's right edge for a line outside the visible prices: an arrow towards it and the line's label. */
+function edgeTagFigure(render: LineRender, place: EdgeMarkerPlace, width: number, height: number): EngineFigure {
+  const { line, colors } = render;
+  const text = `${EDGE_ARROWS[place.edge]} ${line.label}`;
+  const textWidth = utils.calcTextWidth(text, FONT_SIZE, 'normal', colors.fontFamily) + LABEL_PADDING_X * 2;
+  return {
+    type: 'text',
+    ignoreEvent: true,
+    attrs: { x: width - LABEL_MARGIN - textWidth, y: edgeY(place, height), text, align: 'left', baseline: 'middle' },
+    styles: labelStyles(lineColor(line, colors), colors),
+  };
+}
+
 function markerFigure(render: FillRender, x: number, y: number): EngineFigure {
   const { marker, colors } = render;
   // The tip touches the fill price: buys point up from below, sells point down from above.
@@ -156,11 +197,13 @@ export function ensureTradingOverlays(): void {
   registered = true;
   registerOverlay({
     name: LINE_OVERLAY,
-    createPointFigures: ({ overlay, coordinates, bounding }) => {
+    createPointFigures: ({ overlay, coordinates, bounding, yAxis }) => {
       const render = (overlay.extendData as RenderSource<LineRender> | undefined)?.render();
       const y = coordinates[0]?.y;
       const price = overlay.points[0]?.value;
       if (!render || y === undefined || price === undefined) return [];
+      const place = edgePlace(render, y, bounding.height, yAxis);
+      if (place) return [edgeTagFigure(render, place, bounding.width, bounding.height)];
       return lineFigures(render, price, y, bounding.width);
     },
     createYAxisFigures: ({ overlay, coordinates, bounding, yAxis }) => {
@@ -168,7 +211,9 @@ export function ensureTradingOverlays(): void {
       const y = coordinates[0]?.y;
       const price = overlay.points[0]?.value;
       if (!render || y === undefined || price === undefined) return [];
-      return [axisFigure(render, price, y, bounding.width, yAxis?.isFromZero() ?? true)];
+      const place = edgePlace(render, y, bounding.height, yAxis);
+      const labelY = place ? edgeY(place, bounding.height) : y;
+      return [axisFigure(render, price, labelY, bounding.width, yAxis?.isFromZero() ?? true)];
     },
   });
   registerOverlay({

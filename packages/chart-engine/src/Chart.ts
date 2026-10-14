@@ -103,6 +103,13 @@ export interface Chart extends Store {
   unsubscribeAction: (type: ActionType, callback?: ActionCallback) => void
   getConvertPictureUrl: (includeOverlay?: boolean, type?: 'png' | 'jpeg' | 'bmp', backgroundColor?: string) => string
   resize: () => void
+  /**
+   * Values the pane's price axis keeps in view while it scales itself to the
+   * visible data, such as the prices of order lines. Ignored while the user
+   * has scaled the axis by hand. Default pane: the candle pane.
+   */
+  setAutoscaleValues: (values: readonly number[], paneId?: string) => void
+  getAutoscaleValues: (paneId?: string) => readonly number[]
 }
 
 export default class ChartImp implements Chart {
@@ -129,6 +136,8 @@ export default class ChartImp implements Chart {
   }
 
   private _layoutPending = false
+
+  private readonly _autoscaleValues = new Map<string, readonly number[]>()
 
   private _resizeObserver: Nullable<ResizeObserver> = null
 
@@ -1302,6 +1311,24 @@ export default class ChartImp implements Chart {
       ctx.drawImage(pane.getImage(overlayFlag), 0, bounding.top, width, bounding.height)
     })
     return canvas.toDataURL(`image/${type ?? 'jpeg'}`)
+  }
+
+  setAutoscaleValues(values: readonly number[], paneId: string = PaneIdConstants.CANDLE): void {
+    const current = this.getAutoscaleValues(paneId)
+    const next = values.filter((value) => Number.isFinite(value))
+    if (current.length === next.length && current.every((value, index) => value === next[index])) {
+      return
+    }
+    if (next.length > 0) {
+      this._autoscaleValues.set(paneId, next)
+    } else {
+      this._autoscaleValues.delete(paneId)
+    }
+    this.layout({ measureWidth: true, update: true, buildYAxisTick: true })
+  }
+
+  getAutoscaleValues(paneId: string = PaneIdConstants.CANDLE): readonly number[] {
+    return this._autoscaleValues.get(paneId) ?? []
   }
 
   resize(): void {

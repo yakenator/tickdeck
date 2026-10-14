@@ -127,6 +127,8 @@ export interface ChartView {
 export interface ChartViewInternals {
   readonly engine: EngineChart;
   onDispose(callback: () => void): Unsubscribe;
+  /** Prices `owner` wants kept in view while the price axis scales itself. An empty list withdraws them. */
+  setAutoscalePrices(owner: object, prices: readonly number[]): void;
 }
 
 const internals = new WeakMap<ChartView, ChartViewInternals>();
@@ -190,6 +192,7 @@ class ChartViewImpl implements ChartView {
   readonly #pageSize: number | undefined;
   readonly #scheduler: Scheduler | undefined;
   readonly #disposeCallbacks = new Set<() => void>();
+  readonly #autoscalePrices = new Map<object, readonly number[]>();
   #colorOverrides: Partial<ChartColors>;
   #series: BarSeries | undefined;
   #seriesListeners: Unsubscribe[] = [];
@@ -258,6 +261,13 @@ class ChartViewImpl implements ChartView {
       onDispose: (callback) => {
         this.#disposeCallbacks.add(callback);
         return () => this.#disposeCallbacks.delete(callback);
+      },
+      setAutoscalePrices: (owner, prices) => {
+        if (this.#disposed) return;
+        if (prices.length > 0) this.#autoscalePrices.set(owner, prices);
+        else this.#autoscalePrices.delete(owner);
+        const all = [...this.#autoscalePrices.values()].flat();
+        engine.setAutoscaleValues(all.length > 0 ? [Math.min(...all), Math.max(...all)] : [], CANDLE_PANE);
       },
     });
     this.#selectInstrument(options.instrument).catch(() => {});

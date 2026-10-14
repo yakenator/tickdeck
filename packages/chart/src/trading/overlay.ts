@@ -8,7 +8,7 @@ import {
   type ReadonlyObservableValue,
   type Unsubscribe,
 } from '@tickdeck/core';
-import { chartViewInternals, type ChartView } from '../chart-view';
+import { chartViewInternals, type ChartView, type ChartViewInternals } from '../chart-view';
 import type { EngineChart, EngineOverlayEvent } from '../engine';
 import { formatMoney, snapOrderPrice } from '../price';
 import {
@@ -19,6 +19,7 @@ import {
   TradingEdits,
   type TradingAction,
 } from './actions';
+import { tradingPriceRange } from './edges';
 import {
   FILL_OVERLAY,
   LINE_OVERLAY,
@@ -52,6 +53,13 @@ export interface TradingOverlayOptions {
   maxFills?: number;
   /** Formats P&L amounts. Default: sign, two decimals and the currency code. */
   formatMoney?: (value: number, currency?: string) => string;
+  /**
+   * Keep the drawn orders, exits and positions in view while the price axis
+   * scales itself to the bars. Default true. Lines outside the visible prices
+   * (with this off, or after scaling the axis by hand) get a marker at the
+   * top or bottom edge with their label and price.
+   */
+  autoscaleTradingLines?: boolean;
 }
 
 export interface TradingActionEvent {
@@ -111,6 +119,8 @@ class TradingOverlayImpl implements TradingOverlay {
   readonly scene: ReadonlyObservableValue<TradingScene>;
 
   readonly #engine: EngineChart;
+  readonly #internals: ChartViewInternals;
+  readonly #autoscale: boolean;
   readonly #group = `tdk-trading-${++overlayCount}`;
   readonly #events = new Emitter<TradingOverlayEvents>();
   readonly #visibility: ObservableValue<TradingVisibility>;
@@ -135,6 +145,8 @@ class TradingOverlayImpl implements TradingOverlay {
     this.view = view;
     this.session = session;
     this.#engine = internals.engine;
+    this.#internals = internals;
+    this.#autoscale = options.autoscaleTradingLines ?? true;
     this.#pnlUnits = options.pnl ?? ['money'];
     this.#maxFills = options.maxFills;
     this.#formatMoney = options.formatMoney ?? formatMoney;
@@ -211,7 +223,10 @@ class TradingOverlayImpl implements TradingOverlay {
     if (this.#disposed) return;
     this.#disposed = true;
     this.#subscriptions.dispose();
-    if (!this.view.disposed) this.#engine.removeOverlay({ groupId: this.#group });
+    if (!this.view.disposed) {
+      this.#internals.setAutoscalePrices(this, []);
+      this.#engine.removeOverlay({ groupId: this.#group });
+    }
     this.#lines.clear();
     this.#fills.clear();
     this.#lineSignatures.clear();
@@ -295,6 +310,8 @@ class TradingOverlayImpl implements TradingOverlay {
     this.#scene.set(scene);
     this.#syncLines(scene.lines);
     this.#syncFills(scene);
+    const range = this.#autoscale ? tradingPriceRange(scene.lines) : undefined;
+    this.#internals.setAutoscalePrices(this, range ? [range.low, range.high] : []);
   }
 
   #redrawAll(): void {
@@ -310,7 +327,7 @@ class TradingOverlayImpl implements TradingOverlay {
     for (const line of lines) {
       seen.add(line.id);
       const pnlText = line.pnl ? formatPositionPnl(line.pnl, this.#pnlUnits, this.#formatMoney) : undefined;
-      this.#lines.set(line.id, { line, colors, formatPrice, pnlText });
+      this.#lines.set(line.id, { line, colors, formatPrice, pnlText, lines: this.#drawnLines });
       const signature = JSON.stringify([line, pnlText]);
       const previous = this.#lineSignatures.get(line.id);
       this.#lineSignatures.set(line.id, signature);
@@ -383,6 +400,8 @@ class TradingOverlayImpl implements TradingOverlay {
       this.#fills.delete(markerId);
     }
   }
+
+  readonly #drawnLines = (): readonly TradingLine[] => this.#scene.value.lines;
 
   #overlayId(key: string): string {
     return `${this.#group}:${key}`;

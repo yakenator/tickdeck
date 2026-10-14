@@ -51,6 +51,52 @@ view.dispose(); // also disposes the trading overlay
 
 The package can be imported without a DOM, for example during server-side rendering; create the view in the browser (in an effect or `onMounted`).
 
+### Container size
+
+The chart fills its container and follows its size with a `ResizeObserver`, so the container can take its height from the page layout instead of a fixed `height`. Next to a column of widgets, put both in one grid row that stretches its cells and give the chart cell a `min-height`: the row is as tall as the taller of the two, and the chart grows when the column is taller.
+
+```css
+.trading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: stretch;
+  gap: 12px;
+}
+.trading .chart {
+  min-height: 420px; /* no fixed height: the chart grows with the row */
+  min-width: 0;
+}
+.trading .side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.trading .side tdk-order-ticket {
+  flex: 1; /* the ticket's box reaches the chart's bottom when the chart is taller */
+}
+@media (max-width: 720px) {
+  .trading {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+```html
+<div class="trading">
+  <div class="chart" id="chart"></div>
+  <div class="side">
+    <tdk-trade-buttons instrument="MOCK:ACME"></tdk-trade-buttons>
+    <tdk-order-ticket instrument="MOCK:ACME" kind="limit"></tdk-order-ticket>
+  </div>
+</div>
+```
+
+A container without any height (an empty `div` in normal flow) is 0 pixels tall and shows no chart.
+
+### Keyboard and assistive technology
+
+The chart is focusable in document order and exposed as an image named after what it shows, such as "ACME, 1m chart". Shift+ArrowLeft and Shift+ArrowRight scroll, Shift+Plus and Shift+Minus zoom. These shortcuts never act on keys typed into text fields, including fields inside Web Components.
+
 ## `createChartView(container, options)`
 
 | Option | Default | |
@@ -130,6 +176,16 @@ Draws the session's state for the chart's instrument and keeps it in sync with e
 - Dragging rounds to the tick size and shows the new price on the line while the button is held. After the drop the line keeps the new price, marked as pending, until the broker confirms. If the broker rejects the change or does not confirm it within the session's acknowledgement deadline, the line goes back and `actionError` is emitted.
 - Unrealized P&L comes from the broker (`unrealizedPnl` on positions and `pnl` updates). Without it, the position is marked at the last bar's close. `pnl: ['money', 'ticks', 'percent']` picks what the label shows.
 - Lines that cannot change (no amendments, or a position) are not draggable; controls the broker does not support are not shown.
+- While the price axis scales itself to the visible bars, it also keeps every drawn order, exit and position line in view, so a far stop-loss is never off screen. `autoscaleTradingLines: false` scales to the bars only.
+- A line outside the visible prices (with `autoscaleTradingLines: false`, or after the axis was scaled by dragging it) is marked at the top or bottom edge of the pane: a tag with an arrow towards it and its label (`▲ TP 10`), and its price on the axis. Several such lines stack in price order.
+
+| Option | Default | |
+|---|---|---|
+| `orders`, `positions`, `fills` | `true` | Initial visibility of each group |
+| `pnl` | `['money']` | What a position's P&L label shows: `money`, `ticks`, `percent` |
+| `maxFills` | `50` | Most recent fills marked |
+| `formatMoney` | sign, two decimals, currency | Formats P&L amounts |
+| `autoscaleTradingLines` | `true` | Keep the lines in view while the price axis scales itself |
 
 | Member | |
 |---|---|

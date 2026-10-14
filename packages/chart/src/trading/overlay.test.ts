@@ -3,11 +3,17 @@ import { AckTimeoutError, BrokerSession, MockBroker, type OrderAmendment } from 
 import { MockFeed } from '@tickdeck/datafeed';
 import { afterEach, describe, expect, it } from 'vitest';
 import { chartViewInternals, createChartView } from '../chart-view';
-import type { EngineChart } from '../engine';
+import { CANDLE_PANE, type EngineChart } from '../engine';
 import { chartThemes } from '../theme';
 import { createContainer, flush, settle } from '../test/dom';
 import { FILL_OVERLAY, LINE_OVERLAY } from './figures';
-import { attachTrading, type TradingActionErrorEvent, type TradingActionEvent, type TradingOverlay } from './overlay';
+import {
+  attachTrading,
+  type TradingActionErrorEvent,
+  type TradingActionEvent,
+  type TradingOverlay,
+  type TradingOverlayOptions,
+} from './overlay';
 import type { TradingLine } from './scene';
 
 const ACME = 'MOCK:ACME';
@@ -24,7 +30,7 @@ class SilentAmendBroker extends MockBroker {
   }
 }
 
-async function setup(options: { ackTimeoutMs?: number; silentAmend?: boolean } = {}) {
+async function setup(options: { ackTimeoutMs?: number; silentAmend?: boolean; overlay?: TradingOverlayOptions } = {}) {
   const feed = new MockFeed({ autoTick: false });
   const broker = options.silentAmend ? new SilentAmendBroker({ feed }) : new MockBroker({ feed });
   const session = new BrokerSession(broker, { ackTimeoutMs: options.ackTimeoutMs });
@@ -32,7 +38,7 @@ async function setup(options: { ackTimeoutMs?: number; silentAmend?: boolean } =
   const view = createChartView(createContainer(), { feed, instrument: ACME, timeframe: '1m', pageSize: 100 });
   const engine = chartViewInternals(view).engine;
   await settle(20);
-  const overlay = attachTrading(view, session);
+  const overlay = attachTrading(view, session, options.overlay);
   cleanup.push(
     () => feed.dispose(),
     () => session.stop(),
@@ -281,5 +287,73 @@ describe('attachTrading', () => {
     view.dispose();
     expect(second.disposed).toBe(true);
     expect(() => attachTrading(view, session)).toThrow('not created by createChartView');
+  });
+});
+
+describe('attachTrading: lines outside the bars', () => {
+  const priceAxis = (engine: EngineChart) => engine.getYAxes({ paneId: CANDLE_PANE })[0]!;
+
+  /** What the line overlay draws in the pane and on the price axis, with the engine's real axis. */
+  function drawnAt(engine: EngineChart, lineId: string, price: number) {
+    const overlay = engineOverlay(engine, lineId);
+    const yAxis = priceAxis(engine);
+    const height = engine.getSize(CANDLE_PANE, 'main')!.height;
+    const params = {
+      chart: engine,
+      overlay,
+      coordinates: [{ x: 0, y: yAxis.convertToPixel(price) }],
+      bounding: { width: 700, height, left: 0, top: 0, right: 0, bottom: 0 },
+      xAxis: null,
+      yAxis,
+    };
+    const texts = (figures: unknown) =>
+      ([] as Array<{ type: string; attrs: { text?: string; y?: number } }>)
+        .concat((figures ?? []) as never)
+        .filter((figure) => figure.type === 'text')
+        .map((figure) => ({ text: figure.attrs.text, y: figure.attrs.y }));
+    return { height, pane: texts(overlay.createPointFigures?.(params)), axis: texts(overlay.createYAxisFigures?.(params)) };
+  }
+
+  it('keeps orders, exits and positions in the autoscaled price range', async () => {
+    const { session, engine, view, idle } = await setup();
+    const bars = priceAxis(engine).getRange();
+    expect(bars.to).toBeLessThan(140);
+
+    await session.submitOrder({ instrument: ACME, side: 'sell', kind: 'limit', quantity: 1, limitPrice: 140 });
+    await idle();
+    expect(engine.getAutoscaleValues()).toEqual([140, 140]);
+    const range = priceAxis(engine).getRange();
+    // The axis keeps its margins around the wider span, so the bottom moves down a little too.
+    expect(range.from).toBeLessThanOrEqual(bars.from);
+    expect(range.to).toBeGreaterThan(140);
+    expect(view.toPixel({ price: 140 }).y).toBeGreaterThan(0);
+  });
+
+  it('can leave the lines out of the range, and then marks them at the edge', async () => {
+    const { session, engine, overlay, idle } = await setup({ overlay: { autoscaleTradingLines: false } });
+    const bars = priceAxis(engine).getRange();
+    await session.submitOrder({ instrument: ACME, side: 'sell', kind: 'limit', quantity: 1, limitPrice: 140 });
+    await session.submitOrder({ instrument: ACME, side: 'sell', kind: 'limit', quantity: 2, limitPrice: 150 });
+    await session.submitOrder({ instrument: ACME, side: 'buy', kind: 'limit', quantity: 3, limitPrice: 60 });
+    await idle();
+    expect(engine.getAutoscaleValues()).toEqual([]);
+    expect(priceAxis(engine).getRange()).toMatchObject({ from: bars.from, to: bars.to });
+
+    const [high, higher, low] = overlay.scene.value.lines.map((line) => line.id) as [string, string, string];
+    const top = drawnAt(engine, higher, 150);
+    expect(top.pane).toEqual([{ text: '\u25b2 SELL LMT 2', y: 10.5 }]);
+    expect(top.axis).toEqual([{ text: '150.00', y: 10.5 }]);
+    expect(drawnAt(engine, high, 140).pane).toEqual([{ text: '\u25b2 SELL LMT 1', y: 29.5 }]);
+    const bottom = drawnAt(engine, low, 60);
+    expect(bottom.pane).toEqual([{ text: '\u25bc BUY LMT 3', y: bottom.height - 10.5 }]);
+    expect(bottom.axis).toEqual([{ text: '60.00', y: bottom.height - 10.5 }]);
+  });
+
+  it('withdraws its prices from the range when disposed', async () => {
+    const { session, engine, overlay, idle } = await setup();
+    await session.submitOrder({ instrument: ACME, side: 'sell', kind: 'limit', quantity: 1, limitPrice: 140 });
+    await idle();
+    overlay.dispose();
+    expect(engine.getAutoscaleValues()).toEqual([]);
   });
 });
