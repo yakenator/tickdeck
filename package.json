@@ -11,7 +11,7 @@
     "build": "pnpm -r --filter \"./packages/**\" build",
     "build:examples": "pnpm -r --filter \"./examples/**\" build",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
+    "test": "pnpm -r --workspace-concurrency=1 test",
     "dev:vanilla": "pnpm build && pnpm --filter example-vanilla dev",
     "dev:react": "pnpm build && pnpm --filter example-react dev",
     "dev:vue": "pnpm build && pnpm --filter example-vue dev",
