@@ -6,6 +6,9 @@ export const base: Options = {
   target: 'es2022',
   dts: true,
   sourcemap: true,
+  esbuildOptions(options) {
+    options.sourcesContent = false;
+  },
   clean: true,
 };
 
