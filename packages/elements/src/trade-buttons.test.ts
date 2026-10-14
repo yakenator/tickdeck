@@ -29,8 +29,8 @@ describe('<tdk-trade-buttons>', () => {
     const { buttons, session, quote, settle } = await mount();
     const buy = query<HTMLButtonElement>(buttons, '[part~="buy-button"]');
     const sell = query<HTMLButtonElement>(buttons, '[part~="sell-button"]');
-    expect([text(sell), text(query(buttons, '[part="spread"]')), text(buy)]).toEqual(['Sell 100.00', 'Spread0.02', 'Buy 100.02']);
-    expect(buy.getAttribute('aria-label')).toBe('Buy 5 ACME at market, ask 100.02');
+    expect([text(sell), text(query(buttons, '[part="spread"]')), text(buy)]).toEqual(['Sell 100.00', 'Spread 0.02', 'Buy 100.02']);
+    expect(text(query(buttons, `#${buy.getAttribute('aria-describedby')}`))).toBe('Buy 5 ACME at market');
 
     await quote(100.5, 100.53);
     await rendered(buttons);

@@ -232,6 +232,11 @@ class ChartViewImpl implements ChartView {
     if (!engine) throw new Error('The chart engine could not be created');
     this.#engine = engine;
     this.#paintBackground();
+    // The engine's root takes keyboard focus (Shift+arrows scroll, Shift+plus and minus zoom); it is named after what it shows.
+    const root = engine.getDom();
+    root?.setAttribute('role', 'img');
+    root?.addEventListener('focus', this.#onFocus);
+    root?.addEventListener('blur', this.#onBlur);
     if (this.#priceScaleMode.value !== 'normal') {
       engine.overrideYAxis({ paneId: CANDLE_PANE, name: AXIS_NAMES[this.#priceScaleMode.value] });
     }
@@ -379,6 +384,9 @@ class ChartViewImpl implements ChartView {
     this.#dropSeries();
     this.#realtime = undefined;
     this.container.removeEventListener('pointerleave', this.#onPointerLeave);
+    const root = this.#engine.getDom();
+    root?.removeEventListener('focus', this.#onFocus);
+    root?.removeEventListener('blur', this.#onBlur);
     this.#engine.unsubscribeAction('onCrosshairChange', this.#onCrosshair);
     disposeEngine(this.#engine);
     this.container.removeAttribute('data-tdk-chart-id');
@@ -399,6 +407,13 @@ class ChartViewImpl implements ChartView {
   /** The legend title: the instrument's name and the timeframe as tickdeck writes it. */
   #applyTitle(): void {
     this.#engine.setStyles({ candle: { tooltip: { title: { template: `{ticker} \u00b7 ${this.#timeframe.value}` } } } });
+    this.#applyLabel();
+  }
+
+  /** The accessible name of the chart: instrument and timeframe, such as `ACME, 1m chart`. */
+  #applyLabel(): void {
+    const name = this.#instrumentInfo.value?.name ?? this.#instrument.value;
+    this.#engine.getDom()?.setAttribute('aria-label', `${name}, ${this.#timeframe.value} chart`);
   }
 
   #paintBackground(): void {
@@ -434,6 +449,7 @@ class ChartViewImpl implements ChartView {
       pricePrecision: priceDecimals(info),
       volumePrecision: decimalPlaces(info.quantity.step),
     });
+    this.#applyLabel();
     this.#updateLoading();
   }
 
@@ -536,6 +552,24 @@ class ChartViewImpl implements ChartView {
 
   readonly #onPointerLeave = (): void => {
     this.#crosshair.set(undefined);
+  };
+
+  /** The engine hides the focus outline; keyboard focus gets one in the accent color. */
+  readonly #onFocus = (event: FocusEvent): void => {
+    const root = event.currentTarget as HTMLElement;
+    let keyboard = true;
+    try {
+      keyboard = root.matches(':focus-visible');
+    } catch {
+      // Without `:focus-visible` support every focus shows the outline.
+    }
+    if (!keyboard) return;
+    root.style.outline = `2px solid ${this.#colors.value.line}`;
+    root.style.outlineOffset = '-2px';
+  };
+
+  readonly #onBlur = (event: FocusEvent): void => {
+    (event.currentTarget as HTMLElement).style.outline = 'none';
   };
 }
 

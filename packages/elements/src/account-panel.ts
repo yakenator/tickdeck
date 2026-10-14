@@ -416,10 +416,9 @@ export class TdkAccountPanelElement extends TdkWidgetElement<AccountPanelControl
             type="button"
             class="btn small"
             part="action-button exits-button"
-            aria-label="Edit take-profit and stop-loss: ${row.label}"
             @click=${() => this.activeController?.requestEditExits(row.id)}
           >
-            TP/SL
+            TP/SL<span class="visually-hidden">: edit take-profit and stop-loss, ${row.label}</span>
           </button>`
         : nothing}<button
         type="button"

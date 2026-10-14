@@ -10,6 +10,9 @@ import { TdkWidgetElement } from './base';
 import { NumberDrafts } from './controls';
 import type { TdkOrderErrorDetail, TdkOrderPlacedDetail } from './events';
 
+/** Shown instead of a missing price or spread: a dash on screen, "unknown" for assistive technology. */
+const unknown = html`<span aria-hidden="true">–</span><span class="visually-hidden">unknown</span>`;
+
 /**
  * Sell and buy buttons with live bid, ask and spread, sending market orders
  * in one click (or two, in confirm mode).
@@ -179,11 +182,12 @@ export class TdkTradeButtonsElement extends TdkWidgetElement<TradeButtonsControl
       </div>
       <div class="buttons">
         ${this.#sideButton(state, state.sell)}
-        <div class="spread" part="spread" aria-label="Spread ${state.quote?.spreadText ?? 'unknown'}">
-          <span aria-hidden="true">Spread</span><span aria-hidden="true">${state.quote?.spreadText || '–'}</span>
+        <div class="spread" part="spread">
+          <span>Spread</span> <span>${state.quote?.spreadText || unknown}</span>
         </div>
         ${this.#sideButton(state, state.buy)}
       </div>
+      ${this.#sideDescription(state.sell)} ${this.#sideDescription(state.buy)}
       ${state.armed ? this.#renderConfirm(state) : nothing}
       <div class="quantity" part="quantity">
         <label for="quantity">Qty</label>
@@ -228,13 +232,20 @@ export class TdkTradeButtonsElement extends TdkWidgetElement<TradeButtonsControl
       ?disabled=${!view.enabled}
       aria-busy=${busy ? 'true' : 'false'}
       aria-pressed=${state.confirm ? (state.armed === view.side ? 'true' : 'false') : nothing}
-      aria-label="${view.description}${view.priceText ? `, ${view.side === 'buy' ? 'ask' : 'bid'} ${view.priceText}` : ''}"
+      aria-describedby="${view.side}-description"
       title=${view.reason ?? nothing}
       @click=${() => void this.activeController?.trade(view.side)}
     >
       <span class="label">${busy ? 'Sending…' : view.label}</span>
-      <span class="price">${view.priceText || '–'}</span>
+      <span class="price">${view.priceText || unknown}</span>
     </button>`;
+  }
+
+  /** What a side's button does, and why it is disabled, for assistive technology. The button's name stays its visible text. */
+  #sideDescription(view: TradeSideView): TemplateResult {
+    return html`<span id="${view.side}-description" class="visually-hidden"
+      >${view.description}${view.reason ? `. ${view.reason}` : ''}</span
+    >`;
   }
 
   #renderConfirm(state: TradeButtonsState): TemplateResult {

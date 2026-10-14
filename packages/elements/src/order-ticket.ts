@@ -398,21 +398,21 @@ export class TdkOrderTicketElement extends TdkWidgetElement<OrderTicketControlle
         <button
           type="button"
           part="bid"
-          aria-label="Bid ${quote?.bidText ?? 'unknown'}${state.kind === 'market' ? '' : ', use as price'}"
+          aria-label="Bid ${quote?.bidText || 'unknown'}${state.kind === 'market' ? '' : ', use as price'}"
           ?disabled=${busy || state.kind === 'market' || quote?.bid === undefined}
           @click=${() => quote?.bid !== undefined && controller.usePrice(quote.bid)}
         >
-          <span class="label">Bid</span><span class="price">${quote?.bidText || '–'}</span>
+          <span class="label">Bid</span> <span class="price">${quote?.bidText || '–'}</span>
         </button>
-        <div class="spread" part="spread"><span class="label">Spread</span><span>${quote?.spreadText || '–'}</span></div>
+        <div class="spread" part="spread"><span class="label">Spread</span> <span>${quote?.spreadText || '–'}</span></div>
         <button
           type="button"
           part="ask"
-          aria-label="Ask ${quote?.askText ?? 'unknown'}${state.kind === 'market' ? '' : ', use as price'}"
+          aria-label="Ask ${quote?.askText || 'unknown'}${state.kind === 'market' ? '' : ', use as price'}"
           ?disabled=${busy || state.kind === 'market' || quote?.ask === undefined}
           @click=${() => quote?.ask !== undefined && controller.usePrice(quote.ask)}
         >
-          <span class="label">Ask</span><span class="price">${quote?.askText || '–'}</span>
+          <span class="label">Ask</span> <span class="price">${quote?.askText || '–'}</span>
         </button>
       </div>
       ${segmented({

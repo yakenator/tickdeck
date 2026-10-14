@@ -29,7 +29,7 @@ const radio = (ticket: HTMLElement, group: string, value: string) =>
 describe('<tdk-order-ticket>', () => {
   it('shows the live quote and builds a limit order with exits', async () => {
     const { ticket, session, settle } = await mount({ quantity: '10' });
-    expect(text(query(ticket, '[part="quote"]'))).toBe('Bid100.00 Spread0.02 Ask100.02');
+    expect(text(query(ticket, '[part="quote"]'))).toBe('Bid 100.00 Spread 0.02 Ask 100.02');
     expect(text(query(ticket, '[part="instrument"]'))).toBe('ACME');
     expect(radio(ticket, 'side', 'buy').getAttribute('aria-checked')).toBe('true');
 

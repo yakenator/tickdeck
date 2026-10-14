@@ -10,6 +10,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified by tickdeck contributors.
  */
 
 import type { ActionCallback, ActionType } from './common/Action'
@@ -177,7 +178,8 @@ export default class ChartImp implements Chart {
       MozUserSelect: 'none',
       webkitTapHighlightColor: 'transparent'
     })
-    this._chartContainer.tabIndex = 1
+    // Focusable in document order; a positive tabindex would jump ahead of the page's own controls.
+    this._chartContainer.tabIndex = 0
     container.appendChild(this._chartContainer)
     this._cacheChartBounding()
   }

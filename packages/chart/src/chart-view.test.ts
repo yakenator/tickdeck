@@ -305,3 +305,39 @@ describe('createChartView: presentation', () => {
     expect(() => create({ theme: 'sepia' as never })).toThrow(RangeError);
   });
 });
+
+describe('createChartView: keyboard and accessibility', () => {
+  it('is focusable in document order and named after what it shows', async () => {
+    const { view, container } = setup();
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.getAttribute('tabindex')).toBe('0');
+    expect(root.getAttribute('role')).toBe('img');
+    expect(root.getAttribute('aria-label')).toBe('ACME, 1m chart');
+
+    await settle(20);
+    view.setTimeframe('5m');
+    expect(root.getAttribute('aria-label')).toBe('ACME, 5m chart');
+    await view.setInstrument('MOCK:ES');
+    expect(root.getAttribute('aria-label')).toBe('ES, 5m chart');
+  });
+
+  it('handles its shortcuts, but not keys typed into fields inside shadow roots', async () => {
+    setup();
+    await settle(20);
+    const host = document.createElement('div');
+    document.body.append(host);
+    const input = document.createElement('input');
+    host.attachShadow({ mode: 'open' }).append(input);
+    /** Shift+ArrowLeft as browsers deliver it: outside the shadow root the target is the host, the path starts at `origin`. */
+    const press = (origin: Element) => {
+      const event = new KeyboardEvent('keydown', { key: 'ArrowLeft', code: 'ArrowLeft', shiftKey: true, bubbles: true, composed: true, cancelable: true });
+      Object.defineProperty(event, 'composedPath', { value: () => [origin, host, document.body, document] });
+      host.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+
+    expect(press(host)).toBe(true);
+    expect(press(input)).toBe(false);
+    host.remove();
+  });
+});

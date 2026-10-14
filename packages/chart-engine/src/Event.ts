@@ -10,6 +10,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified by tickdeck contributors.
  */
 
 import type Chart from './Chart'
@@ -101,9 +102,10 @@ export default class Event implements EventHandler {
   private _mouseMoveTriggerWidgetInfo: EventTriggerWidgetInfo = { pane: null, widget: null }
 
   private readonly _boundKeyBoardDownEvent: (event: KeyboardEvent) => void = (event: KeyboardEvent) => {
-    const target = event.target as Nullable<HTMLElement>
-    const tagName = target?.tagName.toLowerCase()
-    if (tagName === 'input' || tagName === 'textarea' || target?.isContentEditable === true) {
+    // Inside shadow roots `event.target` is the host element; the composed path starts at the field itself.
+    const target = (event.composedPath()[0] ?? event.target) as Nullable<HTMLElement>
+    const tagName = target?.tagName?.toLowerCase()
+    if (tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target?.isContentEditable === true) {
       return
     }
     const { enabled, exclude } = this._chart.getHotKey()
