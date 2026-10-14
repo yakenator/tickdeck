@@ -29,11 +29,19 @@
   ],
   "scripts": {
     "build": "tsup && node ../../scripts/copy-legal.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tickdeck/widgets-core": "workspace:*",
     "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "@tickdeck/broker": "workspace:*",
+    "@tickdeck/core": "workspace:*",
+    "@tickdeck/datafeed": "workspace:*",
+    "happy-dom": "^20.14.6",
+    "vitest": "^5.0.4"
   },
   "engines": {
     "node": ">=20"

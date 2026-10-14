@@ -129,6 +129,22 @@ importers:
       lit:
         specifier: ^3.3.3
         version: 3.3.3
+    devDependencies:
+      '@tickdeck/broker':
+        specifier: workspace:*
+        version: link:../broker
+      '@tickdeck/core':
+        specifier: workspace:*
+        version: link:../core
+      '@tickdeck/datafeed':
+        specifier: workspace:*
+        version: link:../datafeed
+      happy-dom:
+        specifier: ^20.14.6
+        version: 20.14.6
+      vitest:
+        specifier: ^5.0.4
+        version: 5.0.4(@types/node@26.6.5)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.27.7)(yaml@2.9.1))
 
   packages/indicators:
     dependencies:
@@ -182,6 +198,10 @@ importers:
       '@tickdeck/datafeed':
         specifier: workspace:*
         version: link:../datafeed
+    devDependencies:
+      vitest:
+        specifier: ^5.0.4
+        version: 5.0.4(@types/node@26.6.5)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.27.7)(yaml@2.9.1))
 
 packages:
 
