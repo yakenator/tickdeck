@@ -5,6 +5,8 @@ import {
   TIME_IN_FORCE_DESCRIPTIONS,
   TIME_IN_FORCE_LABELS,
   formatAmount,
+  formatDateTimeInput,
+  parseDateTimeInput,
   type EstimateItem,
   type ExitField,
   type ExitInputMode,
@@ -31,15 +33,6 @@ const EXIT_MODES: readonly Choice<ExitInputMode>[] = [
   { value: 'price', label: 'Price' },
   { value: 'ticks', label: 'Ticks' },
 ];
-
-const pad = (value: number) => String(value).padStart(2, '0');
-
-/** `datetime-local` value in the browser's timezone. */
-function toLocalInput(time: number | undefined): string {
-  if (time === undefined || !Number.isFinite(time)) return '';
-  const date = new Date(time);
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 /**
  * Order entry with live bid and ask, validation, protective exits, estimates
@@ -564,13 +557,13 @@ export class TdkOrderTicketElement extends TdkWidgetElement<OrderTicketControlle
               type="datetime-local"
               class="field"
               part="input expiry-input"
-              .value=${live(toLocalInput(state.expiresAt))}
+              .value=${live(formatDateTimeInput(state.expiresAt, controller.timeZone))}
               ?disabled=${!state.editable.timeInForce}
               aria-invalid=${state.visibleErrors.expiresAt ? 'true' : 'false'}
               aria-describedby=${state.visibleErrors.expiresAt ? 'expiresAt-error' : nothing}
               @change=${(event: Event) => {
                 const text = (event.target as HTMLInputElement).value;
-                controller.setExpiresAt(text ? new Date(text).getTime() : undefined);
+                controller.setExpiresAt(parseDateTimeInput(text, controller.timeZone));
               }}
             />
             ${this.#error(state, 'expiresAt')}

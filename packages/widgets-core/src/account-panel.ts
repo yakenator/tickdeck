@@ -456,6 +456,10 @@ export class AccountPanelController extends WidgetController<AccountPanelState, 
     this.#refresh();
   }
 
+  protected override timeZoneChanged(): void {
+    this.#refresh();
+  }
+
   setTab(tab: AccountTab): void {
     if (tab !== this.state.value.tab) this.#refresh({ tab });
   }
@@ -661,7 +665,7 @@ export class AccountPanelController extends WidgetController<AccountPanelState, 
     const connection = session.connection.value;
     const connected = connection.state === 'connected';
     const caps = session.capabilities;
-    const context: CellContext = { now: this.scheduler.now(), timeZone: this.context.timeZone };
+    const context: CellContext = { now: this.scheduler.now(), timeZone: this.timeZone };
 
     const allOrders = session.orders;
     const workingCount = allOrders.filter((order) => isWorkingState(order.state)).length;

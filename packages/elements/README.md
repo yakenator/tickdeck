@@ -46,8 +46,10 @@ npm install @tickdeck/elements @tickdeck/broker @tickdeck/datafeed
 |---|---|---|
 | `session` | | The `BrokerSession`. The element creates its own controller from it and disposes it when removed. |
 | `feed` | | Quotes and instrument metadata, typically a `MarketFeed`. Needed for live prices and display names. |
-| `controller` | | A controller you created yourself. Takes precedence over `session`; you keep ownership and dispose it. |
+| `controller` | | A controller you created yourself. Takes precedence over `session`; you keep ownership and dispose it. Its own context sets the time zone and clock (`timeZone` and `scheduler` apply to controllers the element creates). |
 | `theme` | `theme` | `light` (default), `dark`, or `auto` (follows `prefers-color-scheme`). |
+| `timeZone` | `time-zone` | IANA time zone of displayed times (panel times, notification log, ticket expiry), such as `America/New_York`. Default: the browser's. Changing it updates the times in place. An unknown zone falls back to the browser's with a console warning. |
+| `scheduler` | | Clock and timers (a `Scheduler` from `@tickdeck/core`) for the controller the element creates. Default: the host's. |
 | `activeController` | | Read-only: the controller being rendered. |
 
 Rich values (session, feed, controller, arrays) are properties. Simple settings also work as attributes.

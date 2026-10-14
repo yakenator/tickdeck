@@ -85,6 +85,16 @@ function clockParts(time: number, timeZone: string | undefined): Record<string, 
   return parts;
 }
 
+/** Whether `timeZone` is an IANA time zone this host knows, such as `America/New_York` or `UTC`. */
+export function isValidTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * `HH:MM:SS` for times on the same day as `now`, `MM-DD HH:MM` otherwise,
  * in `timeZone` (default: the host's).
@@ -97,4 +107,40 @@ export function formatTimeOfDay(time: number | undefined, now: number, timeZone?
     return `${at.hour}:${at.minute}:${at.second}`;
   }
   return `${at.month}-${at.day} ${at.hour}:${at.minute}`;
+}
+
+/** Milliseconds `timeZone`'s clock is ahead of UTC at `time`. */
+function zoneOffset(time: number, timeZone: string | undefined): number {
+  const at = clockParts(time, timeZone);
+  const wall = Date.UTC(Number(at.year), Number(at.month) - 1, Number(at.day), Number(at.hour), Number(at.minute), Number(at.second));
+  return wall - Math.floor(time / 1000) * 1000;
+}
+
+/**
+ * A `datetime-local` input value (`YYYY-MM-DDTHH:MM`) for `time` in
+ * `timeZone` (default: the host's). `undefined` and non-finite times are `''`.
+ */
+export function formatDateTimeInput(time: number | undefined, timeZone?: string): string {
+  if (time === undefined || !Number.isFinite(time)) return '';
+  const at = clockParts(time, timeZone);
+  return `${at.year}-${at.month}-${at.day}T${at.hour}:${at.minute}`;
+}
+
+/**
+ * The time a `datetime-local` value means in `timeZone` (default: the
+ * host's), as UTC epoch milliseconds. Blank text is `undefined`, anything
+ * unreadable is `NaN`. Wall times that a daylight saving change skips or
+ * repeats resolve to a moment next to them.
+ */
+export function parseDateTimeInput(text: string, timeZone?: string): number | undefined {
+  const trimmed = text.trim();
+  if (trimmed === '') return undefined;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(trimmed);
+  if (!match) return Number.NaN;
+  const [year, month, day, hour, minute, second] = match.slice(1).map((part) => Number(part ?? 0)) as [number, number, number, number, number, number];
+  const wall = Date.UTC(year, month - 1, day, hour, minute, second);
+  // The offset at the wall time read as UTC is close; one more step settles it across a change of offset.
+  let time = wall - zoneOffset(wall, timeZone);
+  time = wall - zoneOffset(time, timeZone);
+  return time;
 }

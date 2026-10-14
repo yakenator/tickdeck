@@ -23,22 +23,39 @@ import type { WidgetContext } from './context';
  * whenever something changed.
  */
 export abstract class WidgetController<State extends object, Events extends object = object> implements Disposable {
-  readonly context: WidgetContext;
   readonly state: ReadonlyObservableValue<State>;
   protected readonly disposables = new DisposableGroup();
   protected readonly scheduler: Scheduler;
   readonly #state: ObservableValue<State>;
   readonly #events = new Emitter<Events>();
+  #context: WidgetContext;
 
   constructor(context: WidgetContext, initial: State) {
-    this.context = context;
+    this.#context = context;
     this.scheduler = context.scheduler ?? systemScheduler;
     this.#state = new ObservableValue(initial);
     this.state = this.#state.asReadonly();
   }
 
+  /** What the controller works with. Only `timeZone` changes, through `setTimeZone`. */
+  get context(): WidgetContext {
+    return this.#context;
+  }
+
   get session(): BrokerSession {
-    return this.context.session;
+    return this.#context.session;
+  }
+
+  /** IANA time zone of displayed times; `undefined` is the host's. */
+  get timeZone(): string | undefined {
+    return this.#context.timeZone;
+  }
+
+  /** Shows times in another IANA time zone. The state is replaced, so views render again. */
+  setTimeZone(timeZone: string | undefined): void {
+    if (timeZone === this.#context.timeZone || this.disposed) return;
+    this.#context = { ...this.#context, timeZone };
+    this.timeZoneChanged();
   }
 
   get disposed(): boolean {
@@ -62,6 +79,11 @@ export abstract class WidgetController<State extends object, Events extends obje
   dispose(): void {
     this.disposables.dispose();
     this.#events.removeAllListeners();
+  }
+
+  /** Called after `setTimeZone`. Controllers that format times in their state override it to format them again. */
+  protected timeZoneChanged(): void {
+    this.setState({});
   }
 
   protected setState(patch: Partial<State>): void {

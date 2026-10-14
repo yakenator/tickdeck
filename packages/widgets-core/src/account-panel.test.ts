@@ -175,4 +175,24 @@ describe('AccountPanelController', () => {
     expect(await panel.setPositionExits(positionId, { takeProfit: 101, stopLoss: 99.5 })).toBe(true);
     expect(panel.state.value.positions[0]!.cells).toMatchObject({ 'take-profit': '101.00', 'stop-loss': '99.50' });
   });
+
+  it('shows times in the time zone it is given, and switches zones in place', async () => {
+    const { context, session, quote, settle } = await setupTrading();
+    await quote(100, 100.02);
+    const panel = new AccountPanelController(context, { tab: 'fills' });
+    await session.submitOrder({ instrument: ACME, side: 'buy', kind: 'market', quantity: 1 });
+    await settle();
+    expect(panel.timeZone).toBe('Etc/UTC');
+    expect(panel.state.value.fills[0]!.cells.time).toBe('12:00:30');
+
+    const before = panel.state.value;
+    panel.setTimeZone('Asia/Seoul');
+    expect(panel.context.timeZone).toBe('Asia/Seoul');
+    expect(panel.state.value).not.toBe(before);
+    expect(panel.state.value.tab).toBe('fills');
+    expect(panel.state.value.fills[0]!.cells.time).toBe('21:00:30');
+
+    panel.setTimeZone('America/New_York');
+    expect(panel.state.value.fills[0]!.cells.time).toBe('08:00:30');
+  });
 });

@@ -250,7 +250,8 @@ export class TdkNotificationsElement extends TdkWidgetElement<NotificationCenter
 
   #renderLog(log: readonly NotificationItem[]): TemplateResult {
     const center = this.activeController as NotificationCenter;
-    const now = Date.now();
+    const now = center.context.scheduler?.now() ?? Date.now();
+    const timeZone = center.timeZone;
     return html`<div class="log-bar">
         <button
           type="button"
@@ -272,7 +273,7 @@ export class TdkNotificationsElement extends TdkWidgetElement<NotificationCenter
           log,
           (item) => item.id,
           (item) => html`<li class=${item.level} part="log-item">
-            <time datetime=${new Date(item.time).toISOString()}>${formatTimeOfDay(item.time, now)}</time>
+            <time datetime=${new Date(item.time).toISOString()}>${formatTimeOfDay(item.time, now, timeZone)}</time>
             <span class="title">${item.title}</span>
             ${item.message ? html`<span class="message">${item.message}</span>` : nothing}
           </li>`,

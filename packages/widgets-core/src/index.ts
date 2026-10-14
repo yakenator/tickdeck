@@ -6,9 +6,12 @@ export type { ActionResult, WidgetAvailability, WidgetContext, WidgetFeed } from
 export { WidgetController } from './controller';
 export {
   formatAmount,
+  formatDateTimeInput,
   formatInputNumber,
   formatTimeOfDay,
+  isValidTimeZone,
   moneyPrecision,
+  parseDateTimeInput,
   parseInputNumber,
   type AmountFormatOptions,
 } from './format';

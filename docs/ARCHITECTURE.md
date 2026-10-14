@@ -129,7 +129,7 @@ Every widget is made of three pieces:
    - Its `state` is a read-only observable (`ReadonlyObservableValue` from `core`). State objects are replaced on every change, never mutated, so a view re-renders when `state.value` changes.
    - Action methods change state or send commands. Commands resolve once the broker confirmed them and never throw for broker problems; failures land in the state and in a typed event (`on`, `once`). `dispose()` releases subscriptions and timers.
 2. **Element** (`elements`). A `tdk-*` custom element that renders a controller's state inside Shadow DOM.
-   - It takes `session` and `feed` and creates (and disposes) its own controller, or renders a `controller` you pass in and keep.
+   - It takes `session` and `feed` (and optionally `scheduler` and `time-zone`) and creates (and disposes) its own controller, or renders a `controller` you pass in and keep. Changing `time-zone` switches the controller's time zone in place (`setTimeZone`) without losing its state.
    - Rich data (objects, arrays, controllers) is set as properties. Simple configuration also works as attributes.
    - User actions are dispatched as `CustomEvent`s named `tdk-<action>` that bubble and are `composed`, so they cross shadow boundaries.
    - `@tickdeck/elements` exports the element classes without registering them. `@tickdeck/elements/define` registers every element and skips tags that are already defined. Registration modules are the only files listed in `sideEffects`.

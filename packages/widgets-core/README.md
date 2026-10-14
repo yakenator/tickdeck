@@ -19,7 +19,7 @@ Every controller takes a `WidgetContext`:
 | `session` | A started `BrokerSession`. Controllers read orders, positions, fills, balance and capabilities from it and send every action through it, never to the connector directly. |
 | `feed` | Optional. Quotes for live bid and ask (`QuoteSource`), plus `getInstrument` for display names and precision. Any `MarketFeed` fits. |
 | `scheduler` | Optional clock and timers, for auto-dismiss and confirmation windows. Defaults to the host's. |
-| `timeZone` | Optional IANA timezone for displayed times. Defaults to the host's. |
+| `timeZone` | Optional IANA timezone for displayed times. Defaults to the host's. Change it later with `setTimeZone`. |
 
 ## Controller shape
 
@@ -28,6 +28,7 @@ All controllers extend `WidgetController<State, Events>`:
 - `state`: a read-only `ObservableValue` from `@tickdeck/core`. State objects are replaced on every change, never mutated. Use `state.value` and `state.subscribe(listener)` (or the `subscribe` shorthand).
 - Action methods: they change state or send broker commands. Commands resolve once the broker confirmed them and never throw for broker problems; failures land in the state (`result`, `error`) and in an event.
 - `on(event, listener)` / `once`: typed events for things the application must react to.
+- `setTimeZone(timeZone)`: shows times in another IANA time zone (`undefined` for the host's) and replaces the state, so views render again. `timeZone` and `context` read the current one.
 - `dispose()`: releases subscriptions and timers.
 
 ```ts
@@ -121,6 +122,7 @@ Options: `durations` per level (info and success 5 s, warning 8 s, error 10 s; 0
 - `placeOrder(session, request, token?)`, `runAcknowledged(session, action, id, call)` and `awaitAcknowledgement(session, action, id)`: send through the session and wait for the confirming update. They reject with `AckTimeoutError` or `OrderRejectedError`.
 - `describeTradingError(error)`: a short message for any error a trading action can raise.
 - `formatAmount`, `formatInputNumber`, `parseInputNumber`, `formatTimeOfDay`, `moneyPrecision`: decimal-exact formatting and parsing.
+- `formatDateTimeInput(time, timeZone?)` and `parseDateTimeInput(text, timeZone?)`: `datetime-local` field values in a time zone; `isValidTimeZone(name)` checks a zone name.
 - Label maps: `SIDE_LABELS`, `POSITION_SIDE_LABELS`, `ORDER_KIND_LABELS`, `TIME_IN_FORCE_LABELS`, `TIME_IN_FORCE_DESCRIPTIONS`, `ORDER_STATE_LABELS`, `EXIT_ROLE_LABELS`.
 
 Part of [tickdeck](https://github.com/yakenator/tickdeck). Licensed under Apache-2.0.
