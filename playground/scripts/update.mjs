@@ -1,14 +1,42 @@
-// node scripts/update.mjs [<version> | <dist-tag>]   (default: latest)
+// node scripts/update.mjs [<version> | <dist-tag>] [--note <text>]...   (default: latest)
 //
 // Pins every app to one published tickdeck version, installs it from the npm
 // registry, runs every check and appends the outcome to RESULTS.md.
+// Each --note adds its text to the row's notes, before the notes of the checks.
 // Exits non-zero when anything failed.
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { SEMVER, readVersion, resultsFile, run, syncVersion, writeVersion } from './lib.mjs';
 import { E2E_PROJECTS, verify } from './verify.mjs';
 
 const PACKAGE = '@tickdeck/all';
-const requested = process.argv[2] ?? 'latest';
+
+/** The version or dist-tag (the first argument that is not an option) and the --note texts. */
+function parseArguments(args) {
+  const extra = [];
+  let target;
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === '--note') {
+      const text = args[index + 1];
+      if (!text) throw new Error('--note needs a text');
+      extra.push(text);
+      index += 1;
+    } else if (target === undefined) {
+      target = args[index];
+    } else {
+      throw new Error(`Unexpected argument "${args[index]}"`);
+    }
+  }
+  return { requested: target ?? 'latest', extra };
+}
+
+const { requested, extra } = (() => {
+  try {
+    return parseArguments(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    return process.exit(1);
+  }
+})();
 
 async function npmView(spec, field) {
   const result = await run('npm', ['view', spec, field, '--json'], { quiet: true });
@@ -57,6 +85,7 @@ console.log(changed.length ? `Updated:\n  ${changed.join('\n  ')}` : 'Every file
 
 const notes = [];
 if (previous !== version) notes.push(`from ${previous}`);
+notes.push(...extra);
 const deprecated = await npmView(`${PACKAGE}@${version}`, 'deprecated');
 if (deprecated) notes.push(`deprecated on npm: ${deprecated}`);
 const install = await run('npm', ['install', '--no-audit', '--no-fund']);
