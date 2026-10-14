@@ -6,6 +6,7 @@
 :root {
   --app-bg: #e9ecf0;
   --app-error: #c4314b;
+  --app-on-accent: #ffffff;
   --tdk-color-surface: #ffffff;
   --tdk-color-surface-2: #f3f5f7;
   --tdk-color-text: #1b1f24;
@@ -19,6 +20,7 @@
 :root[data-theme='dark'] {
   --app-bg: #0d1013;
   --app-error: #f2687e;
+  --app-on-accent: #0b1220;
   --tdk-color-surface: #15191e;
   --tdk-color-surface-2: #1f252c;
   --tdk-color-text: #e6e9ed;
@@ -92,7 +94,7 @@ input {
 .button.primary {
   background: var(--tdk-color-accent);
   border-color: var(--tdk-color-accent);
-  color: #ffffff;
+  color: var(--app-on-accent);
 }
 
 :focus-visible {
