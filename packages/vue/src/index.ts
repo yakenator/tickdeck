@@ -233,4 +233,3 @@ const TdkNotificationsComponent = defineComponent({
 
 /** Toasts and a notification log (`<tdk-notifications>`). */
 export const TdkNotifications = TdkNotificationsComponent as WithElement<typeof TdkNotificationsComponent, TdkNotificationsElement>;
-
