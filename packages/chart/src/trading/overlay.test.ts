@@ -2,7 +2,7 @@
 import { AckTimeoutError, BrokerSession, MockBroker, type OrderAmendment } from '@tickdeck/broker';
 import { MockFeed } from '@tickdeck/datafeed';
 import { afterEach, describe, expect, it } from 'vitest';
-import { chartViewInternals, createChartView, type ChartView } from '../chart-view';
+import { chartViewInternals, createChartView } from '../chart-view';
 import type { EngineChart } from '../engine';
 import { chartThemes } from '../theme';
 import { createContainer, flush, settle } from '../test/dom';

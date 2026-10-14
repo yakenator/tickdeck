@@ -68,7 +68,7 @@ view.dispose(); // also disposes the trading overlay
 
 | Member | |
 |---|---|
-| `instrument`, `instrumentInfo` | Observable id (the requested one until resolved) and resolved `Instrument` |
+| `instrument`, `instrumentInfo` | Observable id (the requested one while it resolves, the previous one again if that fails) and resolved `Instrument` |
 | `timeframe`, `chartStyle`, `priceScaleMode`, `theme`, `colors` | Observable settings |
 | `loading` | Observable: the instrument or a history page is loading |
 | `crosshair` | Observable `{ time, price, bar }` under the pointer (price rounded to the tick), or `undefined` |

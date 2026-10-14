@@ -6,13 +6,12 @@ import type { ChartColors } from './theme';
 import type { ChartStyle, PriceScaleMode } from './types';
 
 export type { EngineChart };
-export type EngineStyles = Exclude<Parameters<EngineChart['setStyles']>[0], string>;
-export type EnginePeriod = Parameters<EngineChart['setPeriod']>[0];
-export type EngineDataLoader = Parameters<EngineChart['setDataLoader']>[0];
+type EngineStyles = Exclude<Parameters<EngineChart['setStyles']>[0], string>;
+type EnginePeriod = Parameters<EngineChart['setPeriod']>[0];
+type EngineOverlayCreate = Exclude<Parameters<EngineChart['createOverlay']>[0], string | readonly unknown[]>;
+type EngineOverlayTemplate = Parameters<typeof registerOverlay>[0];
 export type EngineBar = ReturnType<EngineChart['getDataList']>[number];
-export type EngineOverlayCreate = Exclude<Parameters<EngineChart['createOverlay']>[0], string | readonly unknown[]>;
 export type EngineOverlayEvent = Parameters<NonNullable<EngineOverlayCreate['onClick']>>[0];
-export type EngineOverlayTemplate = Parameters<typeof registerOverlay>[0];
 export type EngineFigure = Extract<ReturnType<NonNullable<EngineOverlayTemplate['createPointFigures']>>, readonly unknown[]>[number];
 
 export const CANDLE_PANE = 'candle_pane';

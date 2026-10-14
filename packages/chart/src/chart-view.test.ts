@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
-import type { Instrument } from '@tickdeck/core';
 import { MockFeed, type BarStreamListener } from '@tickdeck/datafeed';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BarSeriesChange } from './bar-series';
-import { chartViewInternals, createChartView, type ChartView, type ChartViewError } from './chart-view';
+import { chartViewInternals, createChartView, type ChartView, type ChartViewError, type ChartViewOptions } from './chart-view';
 import { chartThemes } from './theme';
 import { ManualClock, createContainer, settle } from './test/dom';
 
@@ -159,12 +158,15 @@ describe('createChartView: data', () => {
   });
 
   it('reports failures and keeps working', async () => {
-    const { feed, view, history } = setup();
+    const { view, history } = setup();
     const errors: ChartViewError[] = [];
     view.on('error', (error) => errors.push(error));
     await settle(20);
 
-    await expect(view.setInstrument('NOPE')).rejects.toThrow('Unknown instrument');
+    const switching = view.setInstrument('NOPE');
+    expect(view.instrument.value).toBe('NOPE');
+    await expect(switching).rejects.toThrow('Unknown instrument');
+    expect(view.instrument.value).toBe('MOCK:ACME');
     expect(errors.map((error) => error.operation)).toEqual(['instrument']);
     expect(view.loading.value).toBe(false);
 
@@ -177,7 +179,6 @@ describe('createChartView: data', () => {
     view.reload();
     await settle(20);
     expect(view.bars).toHaveLength(100);
-    void feed;
   });
 });
 
@@ -296,8 +297,11 @@ describe('createChartView: presentation', () => {
 
   it('rejects bad options up front', () => {
     const feed = new MockFeed({ autoTick: false });
-    expect(() => createChartView(createContainer(), { feed, instrument: 'MOCK:ES', timeframe: 'soon' })).toThrow(RangeError);
-    const unused: Instrument | undefined = undefined;
-    void unused;
+    const create = (options: Partial<ChartViewOptions>) =>
+      createChartView(createContainer(), { feed, instrument: 'MOCK:ES', timeframe: '1m', ...options });
+    expect(() => create({ timeframe: 'soon' })).toThrow(RangeError);
+    expect(() => create({ style: 'ribbon' as never })).toThrow(RangeError);
+    expect(() => create({ priceScaleMode: 'square' as never })).toThrow(RangeError);
+    expect(() => create({ theme: 'sepia' as never })).toThrow(RangeError);
   });
 });

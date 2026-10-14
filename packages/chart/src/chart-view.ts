@@ -69,7 +69,7 @@ export interface ChartViewEvents {
 export interface ChartView {
   readonly container: HTMLElement;
   readonly feed: MarketFeed;
-  /** Id of the instrument shown (the requested id until the feed resolves it). */
+  /** Id of the instrument shown: the requested id while the feed resolves it, the previous one again if that fails. */
   readonly instrument: ReadonlyObservableValue<string>;
   /** Metadata of the instrument shown, once the feed has resolved it. */
   readonly instrumentInfo: ReadonlyObservableValue<Instrument | undefined>;
@@ -417,6 +417,8 @@ class ChartViewImpl implements ChartView {
     } catch (error) {
       if (request === this.#instrumentRequest) {
         this.#resolvingInstrument = false;
+        // The chart still shows the previous instrument, if any.
+        this.#instrument.set(this.#instrumentInfo.value?.id ?? id);
         this.#updateLoading();
         this.#events.emit('error', { operation: 'instrument', error });
       }
