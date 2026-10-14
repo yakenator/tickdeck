@@ -69,6 +69,11 @@ input {
   font-size: 12px;
 }
 
+.brand {
+  margin: 0;
+  font-size: 13px;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;

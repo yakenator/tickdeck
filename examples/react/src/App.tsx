@@ -41,7 +41,7 @@ export function App() {
   return (
     <>
       <header className="toolbar">
-        <strong>tickdeck + React</strong>
+        <h1 className="brand">tickdeck + React</h1>
         <select aria-label="Instrument" value={instrument} onChange={(event) => setInstrument(event.target.value)}>
           {feed.instruments.map(({ id, name }) => (
             <option key={id} value={id}>

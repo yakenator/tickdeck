@@ -65,7 +65,7 @@ async function saveExits(): Promise<void> {
   <p v-if="!ready" class="hint">Connecting to the mock broker…</p>
   <template v-else>
     <header class="toolbar">
-      <strong>tickdeck + Vue</strong>
+      <h1 class="brand">tickdeck + Vue</h1>
       <select v-model="instrument" aria-label="Instrument">
         <option v-for="item in feed.instruments" :key="item.id" :value="item.id">{{ item.name }}</option>
       </select>

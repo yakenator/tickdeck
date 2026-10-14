@@ -57,7 +57,7 @@ body {
 
 .brand {
   align-self: center;
-  margin-right: 8px;
+  margin: 0 8px 0 0;
   font-size: 15px;
 }
 
