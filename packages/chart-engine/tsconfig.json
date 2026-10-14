@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "strictPropertyInitialization": false,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": false,
+    "verbatimModuleSyntax": false,
+    "useDefineForClassFields": false
+  },
+  "include": ["src"]
+}

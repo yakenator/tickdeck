@@ -59,9 +59,14 @@ importers:
 
   packages/chart:
     dependencies:
+      '@tickdeck/chart-engine':
+        specifier: workspace:*
+        version: link:../chart-engine
       '@tickdeck/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/chart-engine: {}
 
   packages/core:
     devDependencies:

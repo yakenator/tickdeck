@@ -1,3 +1,4 @@
+import type { Chart as EngineChart } from '@tickdeck/chart-engine';
 import type { Bar } from '@tickdeck/core';
 import { version } from '../package.json';
 
@@ -12,4 +13,9 @@ export interface ChartState {
   style: SeriesStyle;
   scale: ScaleMode;
   bars: readonly Bar[];
+}
+
+export interface ChartView {
+  state: ChartState;
+  engine: EngineChart;
 }

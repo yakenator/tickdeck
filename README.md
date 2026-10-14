@@ -40,7 +40,7 @@ Details are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | `@tickdeck/elements` | 2 | `tdk-*` custom elements |
 | `@tickdeck/react` | 3 | React 18 and 19 components |
 | `@tickdeck/vue` | 3 | Vue 3 components |
-| `@tickdeck/all` | 1 + 2 | Everything except the framework wrappers, plus a CDN bundle |
+| `@tickdeck/all` | 1 + 2 | Everything except the framework wrappers and the raw engine, plus a CDN bundle |
 
 ## Install
 

@@ -1,6 +1,6 @@
 # @tickdeck/all
 
-Every framework-agnostic tickdeck package in one import. Importing it registers all `tdk-*` elements. Also ships `dist/tickdeck.js`, a self-contained ES module for use straight from a CDN.
+Every framework-agnostic tickdeck package in one import, except the raw rendering engine, which stays behind `@tickdeck/chart`. Importing it registers all `tdk-*` elements. Also ships `dist/tickdeck.js`, a self-contained ES module for use straight from a CDN.
 
 > Pre-alpha and under construction. APIs will change without notice.
 

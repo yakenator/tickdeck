@@ -1,7 +1,7 @@
 {
   "name": "@tickdeck/all",
   "version": "0.0.0",
-  "description": "Every framework-agnostic tickdeck package in one import, plus a CDN bundle.",
+  "description": "One import for the framework-agnostic tickdeck packages, plus a CDN bundle.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

@@ -9,4 +9,5 @@ export default defineConfig({
   minify: true,
   platform: 'browser',
   noExternal: [/.*/],
+  define: { 'process.env.NODE_ENV': '"production"' },
 });

@@ -50,7 +50,7 @@ widgets-core → core, broker, datafeed
 elements     → widgets-core, lit
 react        → elements   (peer: react ^18 || ^19)
 vue          → elements   (peer: vue ^3.4)
-all          → every package except react and vue
+all          → every package except chart-engine, react and vue
 ```
 
 | Package | Responsibility |
@@ -58,7 +58,7 @@ all          → every package except react and vue
 | `core` | Shared types (bars, sides, instruments), the typed event emitter, observable values and other small primitives. No dependencies. |
 | `datafeed` | The data feed contract, plus reference adapters for HTTP polling and WebSocket streaming. |
 | `chart-engine` | Canvas rendering engine, derived from KLineChart by liihuu (Apache-2.0) and being refactored for tickdeck. It has no tickdeck dependencies. |
-| `chart` | Chart model, series styles, price scale modes, panes, sessions and event markers. The only package that imports `chart-engine`, so the engine can change without affecting anything above `chart`. The dependency is added once the engine package lands in the repository. |
+| `chart` | Chart model, series styles, price scale modes, panes, sessions and event markers. The only package that imports `chart-engine`, so the engine can change without affecting anything above `chart`. |
 | `drawings` | Drawing tool registry (anchors, editing, locking, grouping, snapping) and serialization. |
 | `indicators` | Built-in indicators and the custom indicator API: inputs, outputs, plot styles and a compute function. |
 | `layout` | Grids of up to eight charts, and linking of instrument, timeframe, crosshair, time and visible range across them. |
@@ -67,7 +67,7 @@ all          → every package except react and vue
 | `widgets-core` | One headless controller per widget. |
 | `elements` | `tdk-*` custom elements built with Lit. |
 | `react`, `vue` | Framework components and, later, hooks and composables that expose controllers. |
-| `all` | Re-exports every framework-agnostic package, registers all elements and ships the CDN bundle. |
+| `all` | Re-exports every framework-agnostic package except `chart-engine` (it stays behind `chart`), registers all elements and ships the CDN bundle. |
 
 Rules:
 
@@ -162,7 +162,7 @@ tdk-placeholder::part(label) {
 ## Build and distribution
 
 - **Output.** Each package builds with tsup from a shared base config (`tsup.base.ts`) to ES modules plus `.d.ts` files, targeting ES2022. Consumers need Node 20 or later, or an evergreen browser.
-- **Package shape.** Each package has an `exports` map with `types` and `import` conditions, `"type": "module"`, and `files` limited to `dist`, `LICENSE` and `NOTICE`. The build copies `LICENSE` and `NOTICE` from the repository root into each package.
+- **Package shape.** Each package has an `exports` map with `types` and `import` conditions, `"type": "module"`, and `files` limited to `dist`, `LICENSE` and `NOTICE`. The build copies `LICENSE` and `NOTICE` from the repository root into each package. `chart-engine` keeps its upstream `LICENSE`, takes only the root `NOTICE`, and also ships `licenses/`.
 - **Side effects.** Every package sets `sideEffects: false` except the registration modules: `@tickdeck/elements/define`, and `@tickdeck/all` (its entry and its CDN bundle).
 - **Peer dependencies.** React and Vue are peer dependencies of their wrappers, so the application's copy is used.
 - **CDN bundle.** `@tickdeck/all/dist/tickdeck.js` is a single minified ES module with every dependency inlined. Load it with `<script type="module">` and use the elements directly.
