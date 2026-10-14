@@ -1,15 +1,17 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import type { TdkNotificationsElement } from '@tickdeck/elements';
 import type { NotificationInput } from '@tickdeck/widgets-core';
-import { html } from 'lit';
+import { html, nothing } from 'lit';
 import { expect, userEvent, waitFor } from 'storybook/test';
-import { loadScenario, round2, type Scenario } from '../src/scenario';
-import { findPart, part, parts, text, widget } from '../src/testing';
+import { FAILED_CONNECT_REASON, fixedClock, loadScenario, round2, type Scenario } from '../src/scenario';
+import { TIME_ZONES, findPart, part, parts, text, widget } from '../src/testing';
 
 interface NotificationsArgs {
   placement: 'inline' | 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end';
   hideLog: boolean;
   maxToasts: number;
+  /** IANA time zone, or '' for the browser's. */
+  timeZone: string;
 }
 
 const notificationsOf = (canvasElement: HTMLElement) => widget(canvasElement, 'tdk-notifications');
@@ -26,7 +28,7 @@ const meta = {
   title: 'Widgets/Notifications',
   component: 'tdk-notifications',
   loaders: [loadScenario],
-  args: { placement: 'inline', hideLog: false, maxToasts: 4 },
+  args: { placement: 'inline', hideLog: false, maxToasts: 4, timeZone: 'UTC' },
   argTypes: {
     placement: {
       control: 'select',
@@ -35,6 +37,12 @@ const meta = {
     },
     hideLog: { control: 'boolean', description: 'Attribute `hide-log`' },
     maxToasts: { control: { type: 'number', min: 1, step: 1 }, description: 'Attribute `max-toasts`' },
+    timeZone: {
+      control: 'select',
+      options: TIME_ZONES,
+      labels: { '': "Browser's" },
+      description: "Attribute `time-zone`: IANA time zone of the log's times (empty: the browser's)",
+    },
   },
   render: (args, { loaded, globals }) => {
     const { session, feed } = scenarioOf(loaded);
@@ -45,6 +53,8 @@ const meta = {
         placement=${args.placement}
         ?hide-log=${args.hideLog}
         max-toasts=${args.maxToasts}
+        time-zone=${args.timeZone || nothing}
+        .scheduler=${fixedClock}
         theme=${globals.theme}
       ></tdk-notifications>
     </div>`;
@@ -150,6 +160,40 @@ export const ConnectionLost: Story = {
     await waitFor(() => expect(element.activeController).toBeTruthy());
     await scenario.broker.disconnect();
     await waitFor(() => expect(titles(element)).toContain('Connection to the broker lost'));
+  },
+};
+
+export const ConnectFailed: Story = {
+  name: 'From the session: could not connect',
+  parameters: { scenario: { state: 'failed' } },
+  play: async ({ canvasElement }) => {
+    const element = notificationsOf(canvasElement);
+    await waitFor(() => expect(titles(element)).toEqual(['Could not connect to the broker']), { timeout: 3000 });
+    await expect(text(part(element, '[part="toast-message"]'))).toBe(FAILED_CONNECT_REASON);
+    await expect(part(element, '[part~="toast-error"]')).toBeVisible();
+  },
+};
+
+/** The time of a message logged on the fixed clock (2026-01-15 14:30 UTC) in each time zone. */
+const LOG_TIMES: Record<string, string> = { UTC: '14:30:00', 'Asia/Seoul': '23:30:00', 'America/New_York': '09:30:00' };
+
+export const TimeZone: Story = {
+  name: 'Time zone: log times',
+  args: { timeZone: 'UTC' },
+  play: async ({ canvasElement, step }) => {
+    const element = notificationsOf(canvasElement);
+    await push(element, { level: 'success', title: 'Order filled', message: 'Bought 10 ACME at 110.75' });
+    await userEvent.click(part(element, '[part~="log-toggle"]'));
+    const logTime = () => text(element.shadowRoot?.querySelector('[part~="log-item"] time'));
+    await waitFor(() => expect(logTime()).toBe(LOG_TIMES.UTC));
+    for (const zone of ['Asia/Seoul', 'America/New_York', 'UTC']) {
+      await step(`time-zone="${zone}" shows ${LOG_TIMES[zone]}`, async () => {
+        element.setAttribute('time-zone', zone);
+        await waitFor(() => expect(logTime()).toBe(LOG_TIMES[zone]));
+      });
+    }
+    // The log is still open and holds the same message.
+    await expect(parts(element, '[part~="log-item"]')).toHaveLength(1);
   },
 };
 

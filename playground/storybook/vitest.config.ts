@@ -17,6 +17,8 @@ export default defineConfig({
             headless: true,
             provider: playwright({}),
             instances: [{ browser: 'chromium' }],
+            // A desktop window like the e2e tests (the default is 414 px wide), so the trading screen lays out side by side.
+            viewport: { width: 1400, height: 1000 },
           },
         },
       },

@@ -1,13 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import type { TdkAccountPanelElement } from '@tickdeck/elements';
-import { html } from 'lit';
+import { html, nothing } from 'lit';
 import { expect, userEvent, waitFor } from 'storybook/test';
-import { loadScenario, type Scenario } from '../src/scenario';
-import { findPart, part, parts, retype, text, whenReady, widget } from '../src/testing';
+import { FAILED_CONNECT_REASON, fixedClock, loadScenario, type Scenario } from '../src/scenario';
+import { TIME_ZONES, findPart, part, parts, retype, text, whenReady, widget } from '../src/testing';
 
 interface PanelArgs {
   tab: 'orders' | 'positions' | 'fills';
   orderFilter: 'working' | 'all';
+  /** IANA time zone, or '' for the browser's. */
+  timeZone: string;
 }
 
 const panelOf = (canvasElement: HTMLElement) => widget(canvasElement, 'tdk-account-panel');
@@ -19,10 +21,16 @@ const meta = {
   title: 'Widgets/Account panel',
   component: 'tdk-account-panel',
   loaders: [loadScenario],
-  args: { tab: 'orders', orderFilter: 'working' },
+  args: { tab: 'orders', orderFilter: 'working', timeZone: 'UTC' },
   argTypes: {
     tab: { control: 'inline-radio', options: ['orders', 'positions', 'fills'], description: 'Attribute `tab`' },
     orderFilter: { control: 'inline-radio', options: ['working', 'all'], description: 'Attribute `order-filter`' },
+    timeZone: {
+      control: 'select',
+      options: TIME_ZONES,
+      labels: { '': "Browser's" },
+      description: "Attribute `time-zone`: IANA time zone of the order and fill times (empty: the browser's)",
+    },
   },
   render: (args, { loaded, globals }) => {
     const { session, feed } = scenarioOf(loaded);
@@ -32,6 +40,8 @@ const meta = {
         .feed=${feed}
         tab=${args.tab}
         order-filter=${args.orderFilter}
+        time-zone=${args.timeZone || nothing}
+        .scheduler=${fixedClock}
         theme=${globals.theme}
       ></tdk-account-panel>
     </div>`;
@@ -50,11 +60,25 @@ export const Empty: Story = {
   },
 };
 
-export const Loading: Story = {
+export const Connecting: Story = {
+  name: 'Connecting to the broker',
   parameters: { scenario: { state: 'connecting' } },
   play: async ({ canvasElement }) => {
     const panel = panelOf(canvasElement);
-    await waitFor(() => expect(text(part(panel, '[part="status"]'))).toBe('Loading account…'));
+    await waitFor(() => expect(panel.activeController?.state.value.status).toBe('connecting'));
+    await expect(text(part(panel, '[part="status"]'))).toBe('Connecting to the broker…');
+  },
+};
+
+export const ConnectFailed: Story = {
+  name: 'Could not connect',
+  parameters: { scenario: { state: 'failed' } },
+  play: async ({ canvasElement }) => {
+    const panel = panelOf(canvasElement);
+    await waitFor(() => expect(text(part(panel, '[part="status"]'))).toBe(`Not connected to the broker: ${FAILED_CONNECT_REASON}`), {
+      timeout: 3000,
+    });
+    await expect(panel.activeController?.state.value.status).toBe('disconnected');
   },
 };
 
@@ -193,6 +217,32 @@ export const KeyboardTabs: Story = {
     await waitFor(() => expect(part(panel, '#tab-fills')).toHaveAttribute('aria-selected', 'true'));
     await userEvent.keyboard('{Home}');
     await waitFor(() => expect(part(panel, '#tab-orders')).toHaveAttribute('aria-selected', 'true'));
+  },
+};
+
+/** Order times on the fixed clock (2026-01-15 14:30 UTC) in each time zone. */
+const ORDER_TIMES: Record<string, string> = { UTC: '14:30:00', 'Asia/Seoul': '23:30:00', 'America/New_York': '09:30:00' };
+
+export const TimeZone: Story = {
+  name: 'Time zone: order times',
+  args: { timeZone: 'UTC' },
+  parameters: { scenario: { state: 'working' } },
+  play: async ({ canvasElement, step }) => {
+    const panel = panelOf(canvasElement);
+    await whenReady(panel);
+    await waitFor(() => expect(rows(panel)).toHaveLength(4));
+    const times = () => [...new Set(rows(panel).map((row) => cell(row, 'time')))];
+    await expect(times()).toEqual([ORDER_TIMES.UTC]);
+    const controller = panel.activeController;
+    for (const zone of ['Asia/Seoul', 'America/New_York', 'UTC']) {
+      await step(`time-zone="${zone}" shows ${ORDER_TIMES[zone]}`, async () => {
+        panel.setAttribute('time-zone', zone);
+        await waitFor(() => expect(times()).toEqual([ORDER_TIMES[zone]]));
+      });
+    }
+    // The same controller, rows and tab: the times changed in place.
+    await expect(panel.activeController).toBe(controller);
+    await expect(rows(panel)).toHaveLength(4);
   },
 };
 

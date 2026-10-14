@@ -31,12 +31,16 @@ export type ScenarioState =
   | 'empty'
   /** The broker never finishes connecting. */
   | 'connecting'
+  /** Connecting fails after a moment (`FAILED_CONNECT_MS`): the session start rejects with `FAILED_CONNECT_REASON`. */
+  | 'failed'
   /** A working limit buy with take-profit and stop-loss, and a working limit sell. */
   | 'working'
   /** One working limit order on each mock instrument. */
   | 'orders'
   /** An open long position with exits and unrealized P&L, plus a working order. */
   | 'position'
+  /** An open long position whose take-profit and stop-loss are far outside the recent prices (±`FAR_EXIT_DISTANCE`). */
+  | 'far-exits'
   /** A position opened and closed at a profit, a cancelled order, and the fills. */
   | 'history'
   /** Connected once, then the connection dropped. */
@@ -101,6 +105,27 @@ function filterUpdates(broker: MockBroker, pass: (type: keyof BrokerUpdates) => 
   });
 }
 
+/** Distance of the `far-exits` take-profit and stop-loss from the price: far beyond the 1m bars on screen. */
+export const FAR_EXIT_DISTANCE = 8;
+
+/** How long the `failed` connector takes to give up, so widgets first show that they are connecting. */
+export const FAILED_CONNECT_MS = 400;
+export const FAILED_CONNECT_REASON = 'Broker gateway unreachable (mock)';
+
+/** A connector whose connection attempt fails after `FAILED_CONNECT_MS`. */
+function failsToConnect(broker: MockBroker): BrokerConnector {
+  return new Proxy(broker, {
+    get(target, key) {
+      if (key === 'connect') {
+        return () =>
+          new Promise<void>((_, reject) => globalThis.setTimeout(() => reject(new Error(FAILED_CONNECT_REASON)), FAILED_CONNECT_MS));
+      }
+      const value = Reflect.get(target, key, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
+
 /** A connector that reports `connecting` and never completes the connection. */
 function neverConnects(broker: MockBroker): BrokerConnector {
   return new Proxy(broker, {
@@ -126,7 +151,11 @@ export async function createScenario(options: ScenarioOptions = {}): Promise<Sce
   const broker = new MockBroker({ feed, scheduler: fixedClock, startingBalance: 100_000, rules });
   let holding = false;
   const connector =
-    state === 'connecting' ? neverConnects(broker) : filterUpdates(broker, (type) => !(holding && type === 'order'));
+    state === 'connecting'
+      ? neverConnects(broker)
+      : state === 'failed'
+        ? failsToConnect(broker)
+        : filterUpdates(broker, (type) => !(holding && type === 'order'));
   const session = new BrokerSession(connector, { scheduler: fixedClock, ackTimeoutMs });
 
   const [quote] = await feed.loadQuotes([INSTRUMENT]);
@@ -161,8 +190,9 @@ export async function createScenario(options: ScenarioOptions = {}): Promise<Sce
   };
   if (owner) owned.set(owner, [...(owned.get(owner) ?? []), () => scenario.dispose()]);
 
-  if (state === 'connecting') {
-    void session.start();
+  if (state === 'connecting' || state === 'failed') {
+    // The story renders while the session connects; a failed start is shown by the widgets, not thrown here.
+    session.start().catch(() => {});
     return scenario;
   }
   await session.start();
@@ -195,6 +225,15 @@ export async function createScenario(options: ScenarioOptions = {}): Promise<Sce
       if (position) await session.setPositionExits(position.id, { takeProfit: price2(price + 1), stopLoss: price2(price - 0.8) });
       await submit({ side: 'sell', kind: 'limit', quantity: 5, limitPrice: price2(price + 1.2) });
       await market(price2(price + 0.35));
+      break;
+    }
+    case 'far-exits': {
+      await submit({ side: 'buy', kind: 'market', quantity: 10 });
+      await settle();
+      const [position] = session.positions;
+      if (position) {
+        await session.setPositionExits(position.id, { takeProfit: price2(price + FAR_EXIT_DISTANCE), stopLoss: price2(price - FAR_EXIT_DISTANCE) });
+      }
       break;
     }
     case 'history': {

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { html, nothing } from 'lit';
 import { expect, userEvent, waitFor } from 'storybook/test';
-import { INSTRUMENTS, loadScenario, type Scenario } from '../src/scenario';
+import { FAILED_CONNECT_REASON, INSTRUMENTS, loadScenario, type Scenario } from '../src/scenario';
 import { findPart, part, retype, text, whenReady, widget } from '../src/testing';
 
 interface ButtonsArgs {
@@ -96,6 +96,29 @@ export const DisabledDisconnected: Story = {
     await waitFor(() => expect(buttons.activeController?.state.value.availability).toBe('disconnected'));
     await expect(part(buttons, '[part~="buy-button"]')).toBeDisabled();
     await expect(text(part(buttons, '[part="reason"]'))).toMatch(/connect/i);
+  },
+};
+
+export const DisabledConnecting: Story = {
+  name: 'Disabled: connecting',
+  parameters: { scenario: { state: 'connecting' } },
+  play: async ({ canvasElement }) => {
+    const buttons = buttonsOf(canvasElement);
+    await waitFor(() => expect(buttons.activeController?.state.value.availability).toBe('connecting'));
+    await expect(part(buttons, '[part~="buy-button"]')).toBeDisabled();
+    await expect(part(buttons, '[part~="sell-button"]')).toBeDisabled();
+    await expect(text(part(buttons, '[part="reason"]'))).toBe('Connecting to the broker…');
+  },
+};
+
+export const DisabledConnectFailed: Story = {
+  name: 'Disabled: could not connect',
+  parameters: { scenario: { state: 'failed' } },
+  play: async ({ canvasElement }) => {
+    const buttons = buttonsOf(canvasElement);
+    await waitFor(() => expect(buttons.activeController?.state.value.availability).toBe('disconnected'), { timeout: 3000 });
+    await expect(part(buttons, '[part~="buy-button"]')).toBeDisabled();
+    await expect(text(part(buttons, '[part="reason"]'))).toBe(FAILED_CONNECT_REASON);
   },
 };
 

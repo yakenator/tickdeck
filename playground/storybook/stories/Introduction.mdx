@@ -10,24 +10,24 @@ Every published tickdeck component, installed from npm at the playground's pinne
 
 | Section | Shows |
 |---|---|
-| **Widgets / Order ticket** | `tdk-order-ticket`: market, limit, stop and stop-limit orders, take-profit and stop-loss as prices or ticks, validation errors, the review step, amend mode, a busy ticket, an acknowledgement timeout, no connection, and keyboard use |
-| **Widgets / Account panel** | `tdk-account-panel`: empty, loading, working and past orders, positions, fills, a partial close, no connection, sorting, cancelling and keyboard tabs |
-| **Widgets / Trade buttons** | `tdk-trade-buttons`: one-click trading, confirm mode, and each reason a side is disabled |
-| **Widgets / Notifications** | `tdk-notifications`: each level, stacked toasts, the log, and toasts raised by the session (fill, rejection, timeout, lost connection) |
-| **Chart / Chart view** | `createChartView` and `attachTrading`: candles, bars, line and area, every price scale mode, the dark theme and the trading overlay |
-| **Composite / Trading screen** | The chart and all four widgets on one session, wired the way an application wires them |
+| **Widgets / Order ticket** | `tdk-order-ticket`: market, limit, stop and stop-limit orders, take-profit and stop-loss as prices or ticks, validation errors, the review step, amend mode, a busy ticket, an acknowledgement timeout, connecting, a failed start, no connection, and keyboard use |
+| **Widgets / Account panel** | `tdk-account-panel`: empty, connecting, a failed start, working and past orders, positions, fills, a partial close, no connection, sorting, cancelling, keyboard tabs and times in another time zone |
+| **Widgets / Trade buttons** | `tdk-trade-buttons`: one-click trading, confirm mode, and each reason a side is disabled, connecting included |
+| **Widgets / Notifications** | `tdk-notifications`: each level, stacked toasts, the log and its time zone, and toasts raised by the session (fill, rejection, timeout, lost connection, failed start) |
+| **Chart / Chart view** | `createChartView` and `attachTrading`: candles, bars, line and area, every price scale mode, volume in its own pane, overlaid or hidden, the dark theme, the trading overlay, and trading lines outside the bars (autoscaled, or edge markers) |
+| **Composite / Trading screen** | The chart and all four widgets on one session, wired the way an application wires them, in the equal-height layout: the chart and the side column end at the same pixel |
 
-Controls map to element attributes and properties (`instrument`, `kind`, `side`, `quantity`, `exit-mode`, `check-orders`, `tab`, `order-filter`, `confirm`, `placement`, `hide-log`, `max-toasts`) and to the chart's options. The **Theme** button in the toolbar switches every story between the light and dark presets.
+Controls map to element attributes and properties (`instrument`, `kind`, `side`, `quantity`, `exit-mode`, `check-orders`, `tab`, `order-filter`, `time-zone`, `confirm`, `placement`, `hide-log`, `max-toasts`) and to the chart's options (`volume`, `autoscaleTradingLines` among them). The **Theme** button in the toolbar switches every story between the light and dark presets.
 
 ## Deterministic states
 
-Each story builds its own `MockFeed` (seed 7, no automatic ticks), `MockBroker` and `BrokerSession` on a fixed clock (2026-01-15 14:30 UTC), then drives them into a named state before it renders: no orders, a working limit order with take-profit and stop-loss, an open long position with P&L, a closed position with its history, no connection, a rejected order, or actions the broker never acknowledges. Prices, bars and order times are the same on every run. The helpers are in `playground/storybook/src/scenario.ts`.
+Each story builds its own `MockFeed` (seed 7, no automatic ticks), `MockBroker` and `BrokerSession` on a fixed clock (2026-01-15 14:30 UTC), then drives them into a named state before it renders: no orders, a working limit order with take-profit and stop-loss, an open long position with P&L, a position with far exits, a closed position with its history, a broker that is still connecting or fails to connect, no connection, a rejected order, or actions the broker never acknowledges. Prices, bars and order times are the same on every run. The helpers are in `playground/storybook/src/scenario.ts`.
 
 ## Run it
 
 ```sh
 cd playground
 npm run storybook          # http://localhost:6006
-npm run test:storybook     # every story as a test in Chromium, with accessibility checks
+npm run test:storybook     # every story as a test in Chromium, with accessibility checks (no exclusions)
 npm run build-storybook    # static build in storybook/dist
 ```

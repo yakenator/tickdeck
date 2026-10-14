@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import type { TdkOrderTicketElement } from '@tickdeck/elements';
 import { html } from 'lit';
 import { expect, userEvent, waitFor } from 'storybook/test';
-import { INSTRUMENTS, loadScenario, round2, type Scenario } from '../src/scenario';
+import { FAILED_CONNECT_REASON, INSTRUMENTS, loadScenario, round2, type Scenario } from '../src/scenario';
 import { findPart, part, parts, retype, text, whenReady, widget } from '../src/testing';
 
 interface TicketArgs {
@@ -230,7 +230,35 @@ export const Disconnected: Story = {
     const ticket = ticketOf(canvasElement);
     await waitFor(() => expect(ticket.activeController?.state.value.availability).toBe('disconnected'));
     await expect(text(part(ticket, '[part="status"]'))).toMatch(/connect/i);
-    await expect(ticket.shadowRoot?.querySelector('[part~="submit-button"]') ?? null).toBeNull();
+    // Once the instrument's rules are loaded the form shows, with the submit button disabled.
+    await waitFor(() => expect(ticket.activeController?.state.value.instrument).toBeDefined());
+    await expect(await findPart(ticket, '[part~="submit-button"]')).toBeDisabled();
+  },
+};
+
+export const Connecting: Story = {
+  name: 'Connecting to the broker',
+  parameters: { scenario: { state: 'connecting' } },
+  play: async ({ canvasElement }) => {
+    const ticket = ticketOf(canvasElement);
+    await waitFor(() => expect(ticket.activeController?.state.value.availability).toBe('connecting'));
+    await expect(text(part(ticket, '[part="status"]'))).toBe('Connecting to the broker…');
+    // The mock broker answers trading rules before it is connected, so the form shows, with the submit button disabled.
+    await waitFor(() => expect(ticket.activeController?.state.value.instrument).toBeDefined());
+    await expect(await findPart(ticket, '[part~="submit-button"]')).toBeDisabled();
+    await expect(ticket.activeController?.state.value.availability).toBe('connecting');
+  },
+};
+
+export const ConnectFailed: Story = {
+  name: 'Could not connect',
+  parameters: { scenario: { state: 'failed' } },
+  play: async ({ canvasElement }) => {
+    const ticket = ticketOf(canvasElement);
+    await waitFor(() => expect(ticket.activeController?.state.value.availability).toBe('disconnected'), { timeout: 3000 });
+    await expect(text(part(ticket, '[part="status"]'))).toBe(FAILED_CONNECT_REASON);
+    await waitFor(() => expect(ticket.activeController?.state.value.instrument).toBeDefined());
+    await expect(await findPart(ticket, '[part~="submit-button"]')).toBeDisabled();
   },
 };
 

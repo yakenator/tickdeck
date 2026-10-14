@@ -51,8 +51,10 @@ body {
   max-width: 1100px;
 }
 
+/* A chart on its own: the element fills the box it is given, so give it a height. */
 playground-chart {
   display: block;
+  box-sizing: border-box;
   height: 420px;
   min-width: 0;
   border: 1px solid var(--tdk-color-border);
@@ -60,23 +62,38 @@ playground-chart {
   overflow: hidden;
 }
 
+/*
+ * The equal-height pattern from the @tickdeck/chart and @tickdeck/elements
+ * READMEs: one grid row that stretches its cells, a min-height (not a fixed
+ * height) on the chart cell, and the side column as a flex column in which the
+ * ticket takes the rest of the height. The row is as tall as the taller of the
+ * chart's minimum and the column; the chart grows with a taller column, and the
+ * ticket's box reaches the chart's bottom when the chart is taller.
+ */
 .story-screen {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
   grid-template-areas:
     'chart side'
     'panel panel';
+  align-items: stretch;
   gap: 8px;
   max-width: 1280px;
 }
 
 .story-screen playground-chart {
   grid-area: chart;
-  height: 460px;
+  height: auto;
+  min-height: 460px;
 }
 
 .story-screen .story-column {
   grid-area: side;
+  width: auto;
+}
+
+.story-screen .story-column tdk-order-ticket {
+  flex: 1;
 }
 
 .story-screen tdk-account-panel {
