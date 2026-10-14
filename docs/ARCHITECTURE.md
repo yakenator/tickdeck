@@ -56,7 +56,7 @@ all          → every package except chart-engine, react and vue
 | Package | Responsibility |
 |---|---|
 | `core` | Shared types (bars, sides, instruments), the typed event emitter, observable values and other small primitives. No dependencies. |
-| `datafeed` | The data feed contract, plus reference adapters for HTTP polling and WebSocket streaming. |
+| `datafeed` | The data feed contract, plus a mock feed and an HTTP polling adapter (WebSocket streaming follows in P2). |
 | `chart-engine` | Canvas rendering engine, derived from KLineChart by liihuu (Apache-2.0) and being refactored for tickdeck. It has no tickdeck dependencies. |
 | `chart` | Chart model, series styles, price scale modes, panes, sessions and event markers. The only package that imports `chart-engine`, so the engine can change without affecting anything above `chart`. |
 | `drawings` | Drawing tool registry (anchors, editing, locking, grouping, snapping) and serialization. |
@@ -178,8 +178,8 @@ tdk-placeholder::part(label) {
 
 | Phase | Scope | Done when |
 |---|---|---|
-| **P1: Trading MVP** | `core`; HTTP and WebSocket feeds; a single chart (candles, bars, line, area) with price scale modes; the broker contract and mock broker; account panel; order ticket (market, limit and stop, with take-profit and stop-loss); trade buttons; order and position lines on the chart; notifications | An order placed against the mock broker goes through fill, position and protective exit, and every step shows up on the chart and in the panels |
-| **P2: Charting depth** | Up to eight linked charts; watchlist; depth ladder; 40+ indicators; 40+ drawing tools; save and restore; theming | A saved layout restores identically, and the depth ladder stays smooth at dozens of updates per second |
+| **P1: Trading MVP** | `core`; mock and HTTP polling feeds; a single chart (candles, bars, line, area) with price scale modes; the broker contract and mock broker; account panel; order ticket (market, limit and stop, with take-profit and stop-loss); trade buttons; order and position lines on the chart; notifications | An order placed against the mock broker goes through fill, position and protective exit, and every step shows up on the chart and in the panels |
+| **P2: Charting depth** | WebSocket feed adapter; up to eight linked charts; watchlist; depth ladder; 40+ indicators; 40+ drawing tools; save and restore; theming | A saved layout restores identically, and the depth ladder stays smooth at dozens of updates per second |
 | **P3: Completeness** | 100+ indicators; the full drawing tool set; Renko, Kagi, point-and-figure, line break, Heikin-Ashi and volume-weighted candles; instrument details, cursor data and news panels; i18n; accessibility; touch and mobile; keyboard shortcuts | At least 90% of the planned feature list is covered |
 | **P4: Optional** | Volume profile; crypto-style order entry; leverage; position netting; multiple exit levels | Built when there is demand |
 

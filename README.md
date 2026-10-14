@@ -28,7 +28,7 @@ Details are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | Package | Layer | Purpose |
 |---|---|---|
 | `@tickdeck/core` | 1 | Shared types and a typed event emitter |
-| `@tickdeck/datafeed` | 1 | Data feed contract, HTTP polling and WebSocket adapters |
+| `@tickdeck/datafeed` | 1 | Data feed contract, mock and HTTP polling feeds (WebSocket adapter in P2) |
 | `@tickdeck/chart-engine` | 1 | Rendering engine, derived from KLineChart by liihuu (Apache-2.0); being refactored for tickdeck |
 | `@tickdeck/chart` | 1 | Chart model, series styles and price scales; the only package that talks to `chart-engine` |
 | `@tickdeck/drawings` | 1 | Drawing tool registry, anchors and persistence |
@@ -110,8 +110,8 @@ Pin an exact version (`@tickdeck/all@x.y.z`) in production.
 
 | Phase | Scope | Done when |
 |---|---|---|
-| **P1: Trading MVP** | Core types; HTTP and WebSocket feeds; a single chart (candles, bars, line, area) with price scale modes; broker contract with a mock broker; account panel; order ticket (market, limit and stop, with take-profit and stop-loss); buy and sell buttons; order and position lines on the chart; notifications | An order placed against the mock broker goes through fill, position and protective exit, and every step shows up on the chart and in the panels |
-| **P2: Charting depth** | Up to eight linked charts; watchlist; depth ladder; 40+ indicators; 40+ drawing tools; save and restore; theming | A saved layout restores identically, and the depth ladder stays smooth at dozens of updates per second |
+| **P1: Trading MVP** | Core types; mock and HTTP polling feeds; a single chart (candles, bars, line, area) with price scale modes; broker contract with a mock broker; account panel; order ticket (market, limit and stop, with take-profit and stop-loss); buy and sell buttons; order and position lines on the chart; notifications | An order placed against the mock broker goes through fill, position and protective exit, and every step shows up on the chart and in the panels |
+| **P2: Charting depth** | WebSocket feed adapter; up to eight linked charts; watchlist; depth ladder; 40+ indicators; 40+ drawing tools; save and restore; theming | A saved layout restores identically, and the depth ladder stays smooth at dozens of updates per second |
 | **P3: Completeness** | 100+ indicators; the full drawing tool set; Renko, Kagi, point-and-figure, line break, Heikin-Ashi and volume-weighted candles; instrument details, cursor data and news panels; i18n; accessibility; touch and mobile; keyboard shortcuts | At least 90% of the planned feature list is covered |
 | **P4: Optional** | Volume profile; crypto-style order entry; leverage; position netting; multiple exit levels | Built when there is demand |
 
